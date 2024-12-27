@@ -158,6 +158,8 @@ void loopTele()
 {
   if ((millis() / 1000) - lastPublish > conf.getMqttUpdateInterval() || lastPublish == -1 || forceMQTTSend == true)
   {
+    forceMQTTSend = false;
+    lastPublish = millis() / 1000;
     String rootTopic = conf.getDeviceId() + "/";
     // Device Information
     client.publish(String(rootTopic + "deviceId").c_str(), conf.getDeviceId());
@@ -179,10 +181,7 @@ void loopTele()
         client.publish(String(rootTopic + inTopic + "type").c_str(), "1");
       }
     }
-
-    Serial.println("MQTT published successfully.");
-    forceMQTTSend = false;
-    lastPublish = millis() / 1000;
+    Serial.println("MQTT published successfully. "+String(lastPublish));
   }
 
   client.loop();
