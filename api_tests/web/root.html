@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>OPTA WiFi Input Status</title>
+  <style>
+    /* General styling */
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f5f5f5;
+      color: #333;
+    }
+
+    /* Box sizing for all elements to include padding and border in width calculation */
+    * {
+      box-sizing: border-box;
+    }
+
+
+    /* Header styling */
+    h1 {
+      background-color: #6200ea;
+      color: #fff;
+      margin: 0;
+      padding: 20px;
+      text-align: center;
+      font-size: 1.8rem;
+    }
+
+    /* Status box styling */
+    .status,
+    ul {
+      margin: 20px auto;
+      padding: 20px;
+      max-width: 600px;
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    .status h2,
+    ul h2 {
+      margin: 0 0 10px;
+      color: #6200ea;
+      font-size: 1.4rem;
+    }
+
+    /* LED styling with flexbox */
+    .status p {
+      display: flex;
+      align-items: center;
+      margin: 5px 0;
+    }
+
+    .led {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      margin-left: 10px;
+      margin-right: 10px;
+      flex-shrink: 0;
+    }
+
+    .high {
+      background-color: #4caf50;
+    }
+
+    .low {
+      background-color: #f44336;
+    }
+
+    /* List styling */
+    ul {
+      list-style: none;
+      font-weight: bold;
+      padding: 5px;
+      margin-top: 10px;
+      margin-bottom: 10px;
+    }
+
+    ul li {
+      display: flex;
+      align-items: center;
+      margin-left: 10px;
+      margin-top: 10px;
+      margin-bottom: 10px;
+
+    }
+
+    ul li span {
+      margin-left: 10px;
+      margin-right: 10px;
+    }
+
+    .button {
+      width: 100%;
+      padding: 10px;
+      font-size: 16px;
+      color: #fff;
+      background-color: #007bff;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      text-align: center;
+      margin-bottom: 10px;
+      /* Ensure space between buttons */
+      display: block;
+      margin-top: 10px;
+      text-decoration: none;
+    }
+
+    .button:hover {
+      background-color: #0056b3;
+    }
+
+    .config {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+  </style>
+  <script>
+    async function updateStatus() {
+      try {
+        const response = await fetch('/data');
+        const data = await response.json();
+        console.log(data.deviceId);
+        document.getElementById('deviceId').innerText = data.deviceId;
+        document.title = data.deviceId + " Device Status";
+        // Update MQTT connection status
+        document.getElementById('mqttStatus').className = data.mqttConnected ? 'led high' : 'led low';
+        document.getElementById('mqttText').innerText = data.mqttConnected ? 'Connected' : 'Disconnected';
+
+        // Update last publish time
+        const lastPublish = data.lastPublish;
+        document.getElementById('lastPublish').innerText = lastPublish >= 0 ? `${lastPublish} seconds ago` : 'No publish yet';
+
+        // Update inputs
+        const digitalList = document.getElementById('digitalInputs');
+        const analogList = document.getElementById('analogInputs');
+        digitalList.innerHTML = '';
+        analogList.innerHTML = '';
+
+        Object.keys(data.inputs).forEach(pin => {
+          if (data.inputs[pin].type) { // is digital
+            const li = document.createElement('li');
+            const led = document.createElement('span');
+            led.className = data.inputs[pin].value ? 'led high' : 'led low';
+            li.appendChild(document.createTextNode(`${pin}`));
+            li.appendChild(led);
+            const val = data.inputs[pin].value ? "ON" : "OFF";
+            li.appendChild(document.createTextNode(`${val}`));
+            digitalList.appendChild(li);
+          } else {
+            const li = document.createElement('li');
+            li.innerText = `${pin}: ${data.inputs[pin].value.toFixed(2)} V`;
+            analogList.appendChild(li);
+          }
+        });
+
+        const outputList = document.getElementById('outputs');
+        outputList.innerHTML = '';
+        Object.keys(data.outputs).forEach(pin => {
+            const li = document.createElement('li');
+            const led = document.createElement('span');
+            led.className = data.outputs[pin] ? 'led high' : 'led low';
+            li.appendChild(document.createTextNode(`${pin}`));
+            li.appendChild(led);
+            const val = data.outputs[pin] ? "ON" : "OFF";
+            li.appendChild(document.createTextNode(`${val}`));
+            outputList.appendChild(li);
+        });
+
+      } catch (error) {
+        console.error('Error updating status:', error);
+      }
+    }
+    // Set interval to update the page every second
+    setInterval(updateStatus, 1000);
+    window.onload = updateStatus;
+  </script>
+</head>
+
+<body>
+  <h1><span id="deviceId">Opta</span> Device Status</h1>
+  <div class="status">
+    <h2>MQTT Connection:</h2>
+    <p>
+      <span>Status: <span id="mqttText">Disconnected</span></span>
+      &nbsp;
+      <span id="mqttStatus" class="led low"></span>
+    </p>
+    <p>Last Publish: &nbsp;<span id="lastPublish">No publish yet</span></p>
+    <button class="button" id="publishNow">Publish Now</button>
+  </div>
+  <div class="status">
+    <h2>Digital Inputs:</h2>
+    <ul id="digitalInputs"></ul>
+  </div>
+  <div class="status">
+    <h2>Analog Inputs:</h2>
+    <ul id="analogInputs"></ul>
+  </div>
+  <div class="status">
+    <h2>Outputs:</h2>
+    <ul id="outputs"></ul>
+  </div>
+  <div class="config">
+    <p>
+      <a href="device" class="button"> Configure Device</a>
+    </p>
+  </div>
+</body>
+<script>
+  // react on force publish
+  const publishButton = document.getElementById("publishNow");
+  publishButton.addEventListener('click', async (e) => {
+    e.preventDefault();
+    try {
+      const response = await fetch('/send', {
+        method: 'GET'
+      });
+      if (!response.ok) throw new Error('Failed to publish MQTT');
+      alert('MQTT published successfully!');
+      window.location.href = "/";
+    } catch (error) {
+      alert(`Error: ${error.message}`);
+    }
+  });
+
+</script>
+
+</html>
