@@ -1,43 +1,43 @@
 # Remoto: Arduino OPTA IoT Firmware with MQTT and Web Server
 
-This repository contains firmware for an Arduino OPTA IoT device with Ethernet and MQTT support. The firmware enables dynamic configuration, telemetry, and control through MQTT endpoints and a web server.
+This repository contains firmware for an Arduino OPTA IoT device equipped with Ethernet and MQTT support. The firmware facilitates dynamic configuration, telemetry reporting, and control through MQTT endpoints and a built-in web server.
 
 ---
 
 ## Features
 
-- **Ethernet-based networking** with DHCP or static IP support.
-- **MQTT integration** for telemetry publishing and device control.
-- **Web server** for real-time monitoring and configuration updates.
-- **JSON configuration management** stored in flash memory.
-- **Scheduler** for periodic tasks such as telemetry updates and heartbeat signaling.
+- **Ethernet networking** with support for DHCP or static IP configuration.
+- **MQTT integration** for publishing telemetry data and executing control commands.
+- **Web server interface** for real-time monitoring and configuration management.
+- **Persistent configuration storage** using JSON saved to flash memory.
+- **Task scheduling** for periodic operations such as telemetry updates and heartbeats.
 
 ---
 
 ## MQTT Endpoints
 
-The firmware defines specific MQTT topics for publishing telemetry data and subscribing to control commands. Below is a detailed breakdown of the MQTT endpoints.
+The firmware employs structured MQTT topics to handle telemetry data publishing and device control. Below are the details of the supported MQTT endpoints.
 
 ### 1. **Telemetry Publishing**
 
-The device periodically publishes telemetry data to the MQTT broker. The telemetry topics follow this structure:  
+Telemetry data is periodically published to the MQTT broker using topics formatted as:  
 **`<deviceId>/<type>/<attribute>`**
 
 #### Example:
-If the device ID is `Device123`, telemetry for the first analog input would be published under:
-- `Device123/I1/val` for the value.
-- `Device123/I1/type` for the type (0 for analog, 1 for digital).
+For a device with ID `Device123`, telemetry for the first analog input is published under:
+- `Device123/I1/val` for the input value.
+- `Device123/I1/type` for the input type (0 = analog, 1 = digital).
 
 | **Topic**                 | **Description**                                   | **Data Type**                                            |
 | ------------------------- | ------------------------------------------------- | -------------------------------------------------------- |
 | `<deviceId>/deviceId`     | The unique identifier of the device.              | String                                                   |
-| `<deviceId>/I<n>/val`     | Value of input pin `<n>` (analog or digital).     | two decimals float in volts (analog) / Integer (digital) |
+| `<deviceId>/I<n>/val`     | Value of input pin `<n>` (analog or digital).     | Float with 2 decimals (analog, in volts) / Integer (digital) |
 | `<deviceId>/I<n>/type`    | Type of input pin `<n>`: 0 = analog, 1 = digital. | Integer                                                  |
 | `<deviceId>/outputs/O<n>` | State of output pin `<n>`.                        | Integer (0 or 1)                                         |
 
 ### 2. **Control Commands**
 
-The firmware allows control of output pins via MQTT commands. These commands are subscribed to dynamically during startup based on the number of output pins configured.
+Control commands are subscribed dynamically at startup, allowing control of output pins via MQTT.
 
 #### Command Topic:  
 **`<deviceId>/O<n>`**
@@ -53,55 +53,60 @@ For a device with ID `Device123`:
 
 ### 3. **System Status**
 
-The device publishes system-level information such as the MQTT connection status and time since the last telemetry publish.
+System-level status is published periodically for monitoring MQTT connectivity and telemetry activity.
 
 | **Topic**                  | **Description**                             | **Data Type** |
 | -------------------------- | ------------------------------------------- | ------------- |
-| `<deviceId>/mqttConnected` | Connection status to the MQTT broker.       | Boolean       |
+| `<deviceId>/mqttConnected` | MQTT broker connection status.              | Boolean       |
 | `<deviceId>/lastPublish`   | Time (in seconds) since the last telemetry. | Integer       |
 
 ---
 
 ## Configuration
 
-The device's configuration is stored in flash memory as a JSON object. This configuration can be updated dynamically via the web server or MQTT.
+Device configuration is stored as a JSON object in flash memory and can be updated dynamically via the web server or MQTT.
 
-Key parameters:
-- **Device ID**: Unique identifier for MQTT topics.
-- **Network Settings**: DHCP or static IP.
+Key configuration parameters:
+- **Device ID**: Identifier for MQTT topics.
+- **Network Settings**: DHCP or static IP configuration.
 - **MQTT Settings**: Server address, port, username, and password.
-- **Pins**: Types and mappings of input pins.
+- **Pins**: Type and mappings for input and output pins.
 
 ---
 
 ## Getting Started
 
 1. **Flash the Firmware**  
-   Upload the provided firmware to your Arduino OPTA device.
+   Upload the firmware to your Arduino OPTA device using the Arduino IDE or another compatible tool.
 
 2. **Configure the Device**  
-   Access the built-in web server at `http://<device-ip>` to configure the network and MQTT settings.
+   Open the built-in web server at `http://<device-ip>` to set network and MQTT configurations.
 
 3. **Connect to MQTT Broker**  
-   Verify that the device connects to the specified MQTT broker.
+   Ensure the device connects to the specified MQTT broker.
 
-4. **Subscribe to Topics**  
-   Use an MQTT client (e.g., MQTT Explorer or Mosquitto) to monitor telemetry topics and send control commands.
+4. **Monitor and Control**  
+   Use an MQTT client (e.g., MQTT Explorer or Mosquitto) to subscribe to telemetry topics and send control commands.
 
 ---
 
 ## Troubleshooting
-Check the verbose output on the Serial port.
-- **Red LED**: If blinking slow, no ethernet hardware is detected. If blinking fast, no link is detected. if static, Network connection is down.
-- **Ethernet Connection Issues**: Check the cable and ensure the correct network configuration (DHCP/static IP).
-- **MQTT Not Connecting**: Verify broker address, port, and credentials.
-- **No Telemetry**: Ensure inputs are configured correctly and the device is running.
+
+Check the Serial port output for detailed logs.
+
+- **Red LED Behavior**: 
+  - **Slow Blink**: No Ethernet hardware detected.
+  - **Fast Blink**: No link detected.
+  - **Static ON**: Network connection is down.
+- **Ethernet Issues**: Verify the cable and network configuration (DHCP or static IP).
+- **MQTT Connection Issues**: Confirm the broker address, port, and credentials.
+- **No Telemetry Data**: Ensure proper input configuration and verify the device is active.
 
 ---
 
 ## License
 
-CERN-OHL-P
-Copyright Alberto Perro - 2024
+**CERN-OHL-P**  
+Copyright © Alberto Perro, 2024
 
-For questions or contributions, feel free to create an issue or submit a pull request.
+For questions or contributions, please open an issue or submit a pull request.
