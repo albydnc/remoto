@@ -225,9 +225,6 @@ void loopTele() {
     delay(100);
     yield();
     client.publish(String(rootTopic + "deviceId").c_str(), conf.getDeviceId());
-    char topicBuffer[50];
-    snprintf(topicBuffer, sizeof(topicBuffer), "%sdeviceId", conf.getDeviceId().c_str());
-    client.publish(topicBuffer, conf.getDeviceId());
     Serial.println("SendMQTTDevInfo");
     // Inputs
     for (size_t i = 0; i < NUM_INPUTS; i++) {
