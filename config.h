@@ -3,7 +3,7 @@
 #include "Arduino.h"
 //-------------------- DEFAULTS ---------------------
 #define DEFAULT_DEVICE_ID "OPTA_WIFI"
-#define DEFAULT_MQTT_BROKER "public.cloud.shiftr.io"
+#define DEFAULT_MQTT_BROKER "10.176.253.72"
 #define DEFAULT_MQTT_PORT 1883
 #define DEFAULT_MQTT_USER "public"
 #define DEFAULT_MQTT_PASSWORD "public"
@@ -13,6 +13,13 @@
 #define DEFAULT_USE_DHCP true
 #define DEFAULT_IP_ADDR "192.168.1.231"
 #define ADC_BITS 16
+
+//Wifi Secrets
+#define SECRET_SSID "WLNMUK_IOT_CAST"
+#define SECRET_PASS "WxfeQZM44!!"
+
+//NTP
+#define TIME_SERVER "10.176.0.254"
 
 namespace remoto
 {

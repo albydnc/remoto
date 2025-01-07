@@ -22,10 +22,9 @@
 #include <Arduino.h>
 #include <Ethernet.h>
 
-namespace remoto
-{
+namespace remoto {
 
-    const char rootHtml[] PROGMEM = R"rawliteral(
+const char rootHtml[] PROGMEM = R"rawliteral(
    <!DOCTYPE html>
 <html>
 
@@ -158,8 +157,17 @@ namespace remoto
         const response = await fetch('/data');
         const data = await response.json();
         console.log(data.deviceId);
+        const epochTime = data.NTP;
+        if (epochTime) {
+        const date = new Date(epochTime * 1000);
+        const formattedTime = date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        const formattedDate = date.toLocaleDateString('en-GB');
+        document.getElementById('dateTime').innerText = `${formattedTime} ${formattedDate}`;
+    }
+        console.log(epochTime);
         document.getElementById('deviceId').innerText = data.deviceId;
         document.title = data.deviceId + " Device Status";
+
         // Update MQTT connection status
         document.getElementById('mqttStatus').className = data.mqttConnected ? 'led high' : 'led low';
         document.getElementById('mqttText').innerText = data.mqttConnected ? 'Connected' : 'Disconnected';
@@ -215,7 +223,10 @@ namespace remoto
 </head>
 
 <body>
-  <h1><span id="deviceId">Opta</span> Device Status</h1>
+  <h1>  <span id="deviceId">Opta</span> Device Status
+  <span id="dateTime" style="float: right; font-size: 1rem; color: #fff;"></span>
+  </h1>
+
   <div class="status">
     <h2>MQTT Connection:</h2>
     <p>
@@ -266,7 +277,7 @@ namespace remoto
 </html>
     )rawliteral";
 
-    const char configHtml[] PROGMEM = R"rawliteral(
+const char configHtml[] PROGMEM = R"rawliteral(
     <!DOCTYPE html>
 <html lang="en">
 
@@ -571,4 +582,4 @@ namespace remoto
 </html>
 )rawliteral";
 }
-#endif // WEBPAGE_H
+#endif  // WEBPAGE_H
