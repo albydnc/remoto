@@ -8,6 +8,7 @@ This repository contains firmware for an Arduino OPTA IoT device equipped with E
 
 - **Ethernet networking** with support for DHCP or static IP configuration.
 - **MQTT integration** for publishing telemetry data and executing control commands.
+- **REST API** to get telemetry data and configure the device (and soon executing control commands).
 - **Web server interface** for real-time monitoring and configuration management.
 - **Persistent configuration storage** using JSON saved to flash memory.
 - **Task scheduling** for periodic operations such as telemetry updates and heartbeats.
@@ -28,12 +29,12 @@ For a device with ID `Device123`, telemetry for the first analog input is publis
 - `Device123/I1/val` for the input value.
 - `Device123/I1/type` for the input type (0 = analog, 1 = digital).
 
-| **Topic**                 | **Description**                                   | **Data Type**                                            |
-| ------------------------- | ------------------------------------------------- | -------------------------------------------------------- |
-| `<deviceId>/deviceId`     | The unique identifier of the device.              | String                                                   |
-| `<deviceId>/I<n>/val`     | Value of input pin `<n>` (analog or digital).     | Float with 2 decimals (analog, in volts) / Integer (digital) |
-| `<deviceId>/I<n>/type`    | Type of input pin `<n>`: 0 = analog, 1 = digital. | Integer                                                  |
-| `<deviceId>/outputs/O<n>` | State of output pin `<n>`.                        | Integer (0 or 1)                                         |
+| **Topic**              | **Description**                                   | **Data Type**                                                |
+| ---------------------- | ------------------------------------------------- | ------------------------------------------------------------ |
+| `<deviceId>/deviceId`  | The unique identifier of the device.              | String                                                       |
+| `<deviceId>/I<n>/val`  | Value of input pin `<n>` (analog or digital).     | Float with 2 decimals (analog, in volts) / Integer (digital) |
+| `<deviceId>/I<n>/type` | Type of input pin `<n>`: 0 = analog, 1 = digital. | Integer                                                      |
+| `<deviceId>/O<n>`      | State of output pin `<n>`.                        | Integer (0 or 1)                                             |
 
 ### 2. **Control Commands**
 
@@ -51,14 +52,90 @@ For a device with ID `Device123`:
 - To turn ON the first output pin, publish `1` to `Device123/O1`.
 - To turn OFF the first output pin, publish `0` to `Device123/O1`.
 
-### 3. **System Status**
+---
 
-System-level status is published periodically for monitoring MQTT connectivity and telemetry activity.
+## REST Endpoints
 
-| **Topic**                  | **Description**                             | **Data Type** |
-| -------------------------- | ------------------------------------------- | ------------- |
-| `<deviceId>/mqttConnected` | MQTT broker connection status.              | Boolean       |
-| `<deviceId>/lastPublish`   | Time (in seconds) since the last telemetry. | Integer       |
+The firmware offers HTTP endpoints handle telemetry data publishing and device configuration. Below are the details of the supported REST endpoints.
+
+### 1. **Telemetry Data**
+
+Telemetry data can be retrieved using an HTTP GET request at the URL :  
+**`http://<deviceAddress>/data`**
+
+The device will respond with a JSON formatted using this scheme:
+```python
+{
+    "deviceId": "OPTA_WIFI",  # Unique ID for the device
+    "mqttConnected": "true",  # Indicates MQTT connection status
+    "lastPublish": 125,  # Time in seconds since the last telemetry publish
+    "inputs": {  # Inputs with their current values and types (true is digital, false is analog)
+        "I1": {"value": True, "type": True},
+        "I2": {"value": True, "type": True},
+        "I3": {"value": True, "type": True},
+        "I4": {"value": True, "type": True},
+        "I5": {"value": True, "type": True},
+        "I6": {"value": True, "type": True},
+        "I7": {"value": 0.05, "type": False}, 
+        "I8": {"value": 6.5, "type": False},
+    },
+    "outputs": {  # Outputs with their current states
+        "O1": True,
+        "O2": True,
+        "O3": False,
+        "O4": True,
+    }
+}
+```
+
+### 2. **Configuration**
+
+The device's configuration can be retrieved with an HTTP GET request at the URL:
+**`http://<deviceAddress>/config`**
+
+The device will rspond with a JSON formatted using this scheme:
+```python
+{
+    "deviceId": "OPTA_WIFI",  # Device ID
+    "deviceIpAddress": "192.168.1.231",  # IP Address
+    "dhcp": True,  # Indicates if DHCP is enabled
+    "mqtt": {  # MQTT broker configuration
+        "server": "public.cloud.shiftr.io",
+        "port": 1883,
+        "user": "public",
+        "password": "public",
+        "updateInterval": 300  # Telemetry update interval in seconds
+    },
+    "inputs": {  # Pin configurations for the inputs (1 is digital, 0 is analog)
+        "I1": 1,
+        "I2": 1,
+        "I3": 1,
+        "I4": 1,
+        "I5": 1,
+        "I6": 1,
+        "I7": 0,
+        "I8": 0
+    }
+}
+```
+This configuration can be updated and sent to the device using a HTTP POST request to the same endpoint.
+The device will respond with a JSON formatted string:
+```json
+{"status":"success","message":"Configuration updated"}
+```
+
+### 3. **Control Commands**
+
+Control commands are not yet implemented for the REST API.
+
+### 4. **MQTT control**
+MQTT publishing can be forced by making an HTTP GET request to this endpoint:
+**`http://<deviceAddress>/send`**
+
+The device will respond with a JSON formatted string:
+```json
+{"status":"success","message":"MQTT forced send received."}
+```
 
 ---
 

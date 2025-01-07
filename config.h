@@ -1,3 +1,22 @@
+/*
+ * IoT Device Firmware for Arduino OPTA with Ethernet and MQTT Support
+ * -------------------------------------------------------------------
+ * This firmware is designed to run on the Arduino OPTA platform. It provides
+ * a robust framework for network connectivity, MQTT communication,
+ * and web server functionality. The code allows for dynamic configuration
+ * via a built-in web interface and supports telemetry data publishing to
+ * an MQTT broker. It includes:
+ * - Ethernet-based networking.
+ * - MQTT client for telemetry and control.
+ * - JSON-based configuration stored in flash memory.
+ * - Web server for monitoring and configuration.
+ * - Scheduler for periodic tasks.
+ *
+ * Author: Alberto Perro
+ * Date: 27-12-2024
+ * License: CERN-OHL-P
+ */
+
 #if !defined(CONFIGS_H)
 #define CONFIGS_H
 #include "Arduino.h"
