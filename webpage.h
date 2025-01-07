@@ -199,6 +199,12 @@ const char rootHtml[] PROGMEM = R"rawliteral(
           }
         });
 
+        if (digitalList.childElementCount === 0) {
+        digitalList.parentElement.style.display = 'none';
+        } else {
+        digitalList.parentElement.style.display = 'block';
+        }
+
         const outputList = document.getElementById('outputs');
         outputList.innerHTML = '';
         Object.keys(data.outputs).forEach(pin => {
@@ -211,6 +217,12 @@ const char rootHtml[] PROGMEM = R"rawliteral(
             li.appendChild(document.createTextNode(`${val}`));
             outputList.appendChild(li);
         });
+        
+        if (analogList.childElementCount === 0) {
+        analogList.parentElement.style.display = 'none';
+        } else {
+        analogList.parentElement.style.display = 'block';
+        }
 
       } catch (error) {
         console.error('Error updating status:', error);
@@ -567,7 +579,7 @@ const char configHtml[] PROGMEM = R"rawliteral(
           body: JSON.stringify(config)
         });
         if (!response.ok) throw new Error('Failed to set configuration');
-        alert('Configuration updated successfully!');
+        alert('Configuration updated successfully! \n Restarting Device!');
         window.location.href = "/";
       } catch (error) {
         alert(`Error: ${error.message}`);
