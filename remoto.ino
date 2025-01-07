@@ -222,8 +222,6 @@ void loopTele() {
     lastPublish = millis() / 1000;
     String rootTopic = conf.getDeviceId() + "/";
     // Device Information
-    delay(100);
-    yield();
     client.publish(String(rootTopic + "deviceId").c_str(), conf.getDeviceId());
     Serial.println("SendMQTTDevInfo");
     // Inputs
