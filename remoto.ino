@@ -188,7 +188,6 @@ void setup() {
   Scheduler.startLoop(loopTele);
   Scheduler.startLoop(loopHeartbeat);
   Serial.println("Startup Completed.");
-  Serial.println(timeClient.getEpochTime());
 }
 
 void loop() {
