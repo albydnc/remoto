@@ -7,6 +7,7 @@ This repository contains firmware for an Arduino OPTA IoT device equipped with E
 ## Features
 
 - **Ethernet networking** with support for DHCP or static IP configuration.
+- **WiFi networking** with support for DHCP or static IP configuration.
 - **MQTT integration** for publishing telemetry data and executing control commands.
 - **REST API** to get telemetry data and configure the device (and soon executing control commands).
 - **Web server interface** for real-time monitoring and configuration management.
@@ -175,6 +176,8 @@ Check the Serial port output for detailed logs.
   - **Slow Blink**: No Ethernet hardware detected.
   - **Fast Blink**: No link detected.
   - **Static ON**: Network connection is down.
+- **Blue LED Behavior**: 
+  - **5s Blink**: Normal heartbeat.  
 - **Ethernet Issues**: Verify the cable and network configuration (DHCP or static IP).
 - **MQTT Connection Issues**: Confirm the broker address, port, and credentials.
 - **No Telemetry Data**: Ensure proper input configuration and verify the device is active.
@@ -184,6 +187,6 @@ Check the Serial port output for detailed logs.
 ## License
 
 **CERN-OHL-P**  
-Copyright © Alberto Perro, 2024
+Copyright © Alberto Perro, 2025
 
 For questions or contributions, please open an issue or submit a pull request.
