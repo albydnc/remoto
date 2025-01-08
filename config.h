@@ -33,6 +33,13 @@
 #define DEFAULT_IP_ADDR "192.168.1.231"
 #define ADC_BITS 16
 
+//Wifi Secrets
+#define SECRET_SSID "SSID"
+#define SECRET_PASS "PASSWORD"
+
+//NTP
+#define TIME_SERVER "TIMESERVER"
+
 namespace remoto
 {
 
