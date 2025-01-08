@@ -7,6 +7,7 @@
  * via a built-in web interface and supports telemetry data publishing to
  * an MQTT broker. It includes:
  * - Ethernet-based networking.
+ * - WiFi Networking.
  * - MQTT client for telemetry and control.
  * - JSON-based configuration stored in flash memory.
  * - Web server for monitoring and configuration.
