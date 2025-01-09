@@ -7,6 +7,7 @@
  * via a built-in web interface and supports telemetry data publishing to
  * an MQTT broker. It includes:
  * - Ethernet-based networking.
+ * - WiFi Netowkring.
  * - MQTT client for telemetry and control.
  * - JSON-based configuration stored in flash memory.
  * - Web server for monitoring and configuration.
@@ -62,6 +63,18 @@ namespace remoto
     void config::setDHCP(const bool val)
     {
         _dhcp = val;
+    }
+
+    // Getter for dhcp
+    bool config::getWiFiPref() const
+    {
+        return _preferWifi;
+    }
+
+    // Setter for preferwifi
+    void config::setWiFiPref(const bool val)
+    {
+        _preferWifi = val;
     }
 
     // Getter for MQTT server
@@ -122,6 +135,42 @@ namespace remoto
     void config::setMqttUpdateInterval(int interval)
     {
         _mqtt.updateInterval = interval;
+    }
+    
+    // Getter for timeserver address
+    String config::getTimeServer() const
+    {
+        return _timeServer;
+    }
+
+    // Setter for timeserver address
+    void config::setTimeServer(const String &timeserver)
+    {
+        _timeServer = timeserver;
+    }
+        
+    // Getter for ssid name
+    String config::getSSID() const
+    {
+        return _ssid;
+    }
+
+    // Setter for ssid name
+    void config::setSSID(const String &ssid)
+    {
+        _ssid = ssid;
+    }
+
+    // Getter for ssid password
+    String config::getWiFiPassword() const
+    {
+        return _wifiPass;
+    }
+
+    // Setter for ssid password
+    void config::setWiFiPassword(const String &password)
+    {
+        _wifiPass = password;
     }
 
     // Getter for input type (DIGITAL or ANALOG)
@@ -210,6 +259,10 @@ namespace remoto
         if (!doc.containsKey("deviceId") ||
             !doc.containsKey("deviceIpAddress") ||
             !doc.containsKey("dhcp") ||
+            !doc.containsKey("preferWifi") ||
+            !doc.containsKey("ssid") ||
+            !doc.containsKey("wifiPass") ||
+            !doc.containsKey("timeServer") ||
             !doc["mqtt"].containsKey("server") ||
             !doc["mqtt"].containsKey("port") ||
             !doc["mqtt"].containsKey("user") ||
@@ -225,6 +278,10 @@ namespace remoto
         _deviceId = doc["deviceId"].as<String>();
         _ipaddr = doc["deviceIpAddress"].as<String>();
         _dhcp = doc["dhcp"].as<bool>();
+        _preferWifi = doc["preferWifi"].as<bool>();
+        _ssid = doc["ssid"].as<String>();
+        _ssid = doc["wifiPass"].as<String>();
+        _ssid = doc["timeServer"].as<String>();
         _mqtt.server = doc["mqtt"]["server"].as<String>();
         _mqtt.port = doc["mqtt"]["port"].as<int>();
         _mqtt.user = doc["mqtt"]["user"].as<String>();
@@ -249,6 +306,10 @@ namespace remoto
         doc["deviceId"] = _deviceId;
         doc["deviceIpAddress"] = _ipaddr;
         doc["dhcp"] = _dhcp;
+        doc["preferWifi"] = _preferWifi;
+        doc["ssid"] = _ssid;
+        doc["wifiPass"] = _wifiPass;
+        doc["timeServer"] = _timeServer;
         doc["mqtt"]["server"] = _mqtt.server;
         doc["mqtt"]["port"] = _mqtt.port;
         doc["mqtt"]["user"] = _mqtt.user;
@@ -275,7 +336,11 @@ namespace remoto
         _mqtt.password = DEFAULT_MQTT_PASSWORD;
         _mqtt.updateInterval = DEFAULT_TELEMETRY_INTERVAL;
         _dhcp = DEFAULT_USE_DHCP;
+        _preferWifi = DEFAULT_PREFER_WIFI;
         _ipaddr = DEFAULT_IP_ADDR;
+        _ssid = DEFAULT_SSID;
+        _wifiPass = DEFAULT_SSID_PASS;
+        _timeServer = DEFAULT_TIME_SERVER;
         // Default input pin configurations
         _inputs[0][0] = A0;
         _inputs[0][1] = DIGITAL;

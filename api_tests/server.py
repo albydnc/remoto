@@ -20,6 +20,7 @@ data = {
     "deviceId": "REMOTO052",  # Unique ID for the device
     "mqttConnected": "true",  # Indicates MQTT connection status
     "lastPublish": 125,  # Time in seconds since the last telemetry publish
+    "NTP": 1736370059,
     "inputs": {  # Inputs with their current values and types
         "I1": {"value": True, "type": True},
         "I2": {"value": True, "type": True},
@@ -43,6 +44,10 @@ config = {
     "deviceId": "OPTA_WIFI",  # Device ID
     "deviceIpAddress": "192.168.1.231",  # IP Address
     "dhcp": True,  # Indicates if DHCP is enabled
+    "preferWifi": True, # Indicates if the WiFi connection is prefered
+    "ssid": "MYSSID", # Example SSID
+    "wifiPass": "SSID Password", # Example SSID Password
+    "timeServer": "TimeServer",
     "mqtt": {  # MQTT broker configuration
         "server": "public.cloud.shiftr.io",
         "port": 1883,
