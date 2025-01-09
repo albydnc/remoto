@@ -48,12 +48,15 @@ const char rootHtml[] PROGMEM = R"rawliteral(
 
 
     /* Header styling */
-    h1 {
+     h1 {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      position: relative;
       background-color: #6200ea;
       color: #fff;
       margin: 0;
       padding: 20px;
-      text-align: center;
       font-size: 1.8rem;
     }
 
@@ -236,8 +239,8 @@ const char rootHtml[] PROGMEM = R"rawliteral(
 </head>
 
 <body>
-  <h1>  <span id="deviceId">Opta</span> Device Status
-  <span id="dateTime" style="float: right; font-size: 1rem; color: #fff;"></span>
+  <h1> <span id="title"><span id="deviceId">Opta</span> Device Status</span>
+    <span id="dateTime" class="datetime"></span>
   </h1>
 
   <div class="status">
