@@ -20,6 +20,7 @@ data = {
     "deviceId": "REMOTO052",  # Unique ID for the device
     "mqttConnected": "true",  # Indicates MQTT connection status
     "lastPublish": 125,  # Time in seconds since the last telemetry publish
+    "NTP": 1736370059,
     "inputs": {  # Inputs with their current values and types
         "I1": {"value": True, "type": True},
         "I2": {"value": True, "type": True},

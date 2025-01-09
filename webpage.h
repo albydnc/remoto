@@ -26,7 +26,7 @@
 namespace remoto {
 
 const char rootHtml[] PROGMEM = R"rawliteral(
-   <!DOCTYPE html>
+  <!DOCTYPE html>
 <html>
 
 <head>
@@ -49,11 +49,14 @@ const char rootHtml[] PROGMEM = R"rawliteral(
 
     /* Header styling */
     h1 {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      position: relative;
       background-color: #6200ea;
       color: #fff;
       margin: 0;
       padding: 20px;
-      text-align: center;
       font-size: 1.8rem;
     }
 
@@ -151,6 +154,17 @@ const char rootHtml[] PROGMEM = R"rawliteral(
       border-radius: 8px;
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
     }
+
+    .datetime {
+      position: absolute;
+      right: 20px;
+      font-size: 1rem;
+      color: #fff;
+    }
+
+    #title {
+      text-align: center;
+    }
   </style>
   <script>
     async function updateStatus() {
@@ -160,11 +174,11 @@ const char rootHtml[] PROGMEM = R"rawliteral(
         console.log(data.deviceId);
         const epochTime = data.NTP;
         if (epochTime) {
-        const date = new Date(epochTime * 1000);
-        const formattedTime = date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-        const formattedDate = date.toLocaleDateString('en-GB');
-        document.getElementById('dateTime').innerText = `${formattedTime} ${formattedDate}`;
-    }
+          const date = new Date(epochTime * 1000);
+          const formattedTime = date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+          const formattedDate = date.toLocaleDateString('en-GB');
+          document.getElementById('dateTime').innerText = `${formattedTime} ${formattedDate}`;
+        }
         console.log(epochTime);
         document.getElementById('deviceId').innerText = data.deviceId;
         document.title = data.deviceId + " Device Status";
@@ -201,28 +215,28 @@ const char rootHtml[] PROGMEM = R"rawliteral(
         });
 
         if (digitalList.childElementCount === 0) {
-        digitalList.parentElement.style.display = 'none';
+          digitalList.parentElement.style.display = 'none';
         } else {
-        digitalList.parentElement.style.display = 'block';
+          digitalList.parentElement.style.display = 'block';
         }
 
         const outputList = document.getElementById('outputs');
         outputList.innerHTML = '';
         Object.keys(data.outputs).forEach(pin => {
-            const li = document.createElement('li');
-            const led = document.createElement('span');
-            led.className = data.outputs[pin] ? 'led high' : 'led low';
-            li.appendChild(document.createTextNode(`${pin}`));
-            li.appendChild(led);
-            const val = data.outputs[pin] ? "ON" : "OFF";
-            li.appendChild(document.createTextNode(`${val}`));
-            outputList.appendChild(li);
+          const li = document.createElement('li');
+          const led = document.createElement('span');
+          led.className = data.outputs[pin] ? 'led high' : 'led low';
+          li.appendChild(document.createTextNode(`${pin}`));
+          li.appendChild(led);
+          const val = data.outputs[pin] ? "ON" : "OFF";
+          li.appendChild(document.createTextNode(`${val}`));
+          outputList.appendChild(li);
         });
-        
+
         if (analogList.childElementCount === 0) {
-        analogList.parentElement.style.display = 'none';
+          analogList.parentElement.style.display = 'none';
         } else {
-        analogList.parentElement.style.display = 'block';
+          analogList.parentElement.style.display = 'block';
         }
 
       } catch (error) {
@@ -236,8 +250,8 @@ const char rootHtml[] PROGMEM = R"rawliteral(
 </head>
 
 <body>
-  <h1>  <span id="deviceId">Opta</span> Device Status
-  <span id="dateTime" style="float: right; font-size: 1rem; color: #fff;"></span>
+  <h1> <span id="title"><span id="deviceId">Opta</span> Device Status</span>
+    <span id="dateTime" class="datetime"></span>
   </h1>
 
   <div class="status">

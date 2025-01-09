@@ -190,3 +190,6 @@ Check the Serial port output for detailed logs.
 Copyright © Alberto Perro, 2025
 
 For questions or contributions, please open an issue or submit a pull request.
+
+## Contributors
+[@Jersh](https://github.com/Jersh)
