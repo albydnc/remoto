@@ -47,7 +47,7 @@ WiFiClient wnet;
 WiFiUDP ntpUDP;
 WiFiServer wserver(80);
 //NTP
-NTPClient timeClient(ntpUDP, TIME_SERVER);
+NTPClient timeClient(ntpUDP, DEFAULT_TIME_SERVER);
 unsigned long timeString = 0;
 
 config conf;
@@ -55,8 +55,8 @@ bool mqttConnected = false;
 long lastPublish = -1;
 bool forceMQTTSend = false;
 //Wifi +  NTP Stuff
-char ssid[] = SECRET_SSID;  // your network SSID (name)
-char pass[] = SECRET_PASS;  // your network password (use for WPA, or use as key for WEP)
+char ssid[] = DEFAULT_SSID;
+char pass[] = DEFAULT_SSID_PASS;
 int status = WL_IDLE_STATUS;
 
 
@@ -118,9 +118,8 @@ void setup() {
   int ret = 0;
   // First we check for a present ethernet link, try WiFi if one isnt found
   
-  if (Ethernet.linkStatus() == LinkOFF) {
-    Serial.println("No Ethernet plugged in...");
-    Serial.println("Trying WiFi");
+  if (conf.getWiFiPref()) {
+    Serial.println("Config set to prefer Wifi");
     if (conf.getDHCP()) {
       WiFi.begin(ssid, pass);
     } else {
@@ -128,6 +127,8 @@ void setup() {
     }
     connectWiFi();
   } else {
+    
+    Serial.println("Config set to prefer Ethernet");
     // if one is found
     if (conf.getDHCP()) {
       ret = Ethernet.begin();
@@ -215,8 +216,6 @@ void loop() {
 // Telemetry Loop
 void loopTele() {
   if ((millis() / 1000) - lastPublish > conf.getMqttUpdateInterval() || lastPublish == -1 || forceMQTTSend == true) {
-    
-  Serial.println(timeClient.getEpochTime());
     // update the client state
     forceMQTTSend = false;
     lastPublish = millis() / 1000;

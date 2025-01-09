@@ -138,6 +138,7 @@
       text-align: center;
     }
   </style>
+  
   <script>
     async function updateStatus() {
       try {
@@ -146,12 +147,11 @@
         console.log(data.deviceId);
         const epochTime = data.NTP;
         if (epochTime) {
-          const date = new Date(epochTime * 1000);
-          const formattedTime = date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-          const formattedDate = date.toLocaleDateString('en-GB');
-          document.getElementById('dateTime').innerText = `${formattedTime} ${formattedDate}`;
-        }
-        console.log(epochTime);
+        const date = new Date(epochTime * 1000);
+        const formattedTime = date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        const formattedDate = date.toLocaleDateString('en-GB');
+        document.getElementById('dateTime').innerText = `${formattedTime} ${formattedDate}`;
+    }
         document.getElementById('deviceId').innerText = data.deviceId;
         document.title = data.deviceId + " Device Status";
 
@@ -187,28 +187,28 @@
         });
 
         if (digitalList.childElementCount === 0) {
-          digitalList.parentElement.style.display = 'none';
+        digitalList.parentElement.style.display = 'none';
         } else {
-          digitalList.parentElement.style.display = 'block';
+        digitalList.parentElement.style.display = 'block';
         }
 
         const outputList = document.getElementById('outputs');
         outputList.innerHTML = '';
         Object.keys(data.outputs).forEach(pin => {
-          const li = document.createElement('li');
-          const led = document.createElement('span');
-          led.className = data.outputs[pin] ? 'led high' : 'led low';
-          li.appendChild(document.createTextNode(`${pin}`));
-          li.appendChild(led);
-          const val = data.outputs[pin] ? "ON" : "OFF";
-          li.appendChild(document.createTextNode(`${val}`));
-          outputList.appendChild(li);
+            const li = document.createElement('li');
+            const led = document.createElement('span');
+            led.className = data.outputs[pin] ? 'led high' : 'led low';
+            li.appendChild(document.createTextNode(`${pin}`));
+            li.appendChild(led);
+            const val = data.outputs[pin] ? "ON" : "OFF";
+            li.appendChild(document.createTextNode(`${val}`));
+            outputList.appendChild(li);
         });
-
+        
         if (analogList.childElementCount === 0) {
-          analogList.parentElement.style.display = 'none';
+        analogList.parentElement.style.display = 'none';
         } else {
-          analogList.parentElement.style.display = 'block';
+        analogList.parentElement.style.display = 'block';
         }
 
       } catch (error) {
@@ -222,7 +222,7 @@
 </head>
 
 <body>
-  <h1> <span id="title"><span id="deviceId">Opta</span> Device Status</span>
+  <h1> <span id="title"><span id="deviceId">Opta</span> Device Status </span>
     <span id="dateTime" class="datetime"></span>
   </h1>
 

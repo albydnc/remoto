@@ -152,6 +152,25 @@
         </div>
       </div>
 
+      <!-- New connection type toggle -->
+      <div class="wifi-toggle input-item">
+        <label for="preferWifi">Prefer WiFi:</label>
+        <div class="option-buttons">
+          <button type="button" class="option-button" data-input="wifi" data-value="1">Enable</button>
+          <button type="button" class="option-button selected" data-input="wifi" data-value="0">Disable</button>
+        </div>
+      </div>
+
+      <!-- New wifi & NTP details -->
+      <label for="ssid">WiFi SSID:</label>
+      <input type="text" id="ssid" name="ssid" required>
+
+      <label for="wifipass">WiFi Password:</label>
+      <input type="text" id="wifiPass" name="wifiPass" required>
+
+      <label for="timeServer">Time Server:</label>
+      <input type="text" id="timeServer" name="timeServer" required>
+
       <label for="mqttServer">MQTT Server:</label>
       <input type="text" id="mqttServer" name="mqttServer" required>
 
@@ -202,6 +221,26 @@
             }
           });
         }
+
+        // Set WiFi toggle state
+        if (data.preferWifi !== undefined) {
+          const wifiButtons = document.querySelectorAll('.wifi-toggle .option-button');
+          wifiButtons.forEach(button => {
+            const value = button.getAttribute('data-value');
+            if ((value === '1' && data.preferWifi) || (value === '0' && !data.preferWifi)) {
+              button.classList.add('selected');
+            } else {
+              button.classList.remove('selected');
+            }
+          });
+        }
+
+        // Wifi details
+        document.getElementById('ssid').value = data.ssid;
+        document.getElementById('wifiPass').value = data.wifiPass;
+
+        // NTP details
+        document.getElementById('timeServer').value = data.timeServer;
 
         document.getElementById('mqttServer').value = data.mqtt.server;
         document.getElementById('mqttPort').value = data.mqtt.port;
@@ -256,6 +295,10 @@
         deviceId: formData.get('deviceId'),
         deviceIpAddress: formData.get('deviceIpAddress'),
         dhcp: false,
+        preferWifi: false,
+        ssid: formData.get('ssid'),
+        wifiPass: formData.get('wifiPass'),
+        timeServer: formData.get('timeServer'),
         mqtt: {
           server: formData.get('mqttServer'),
           port: formData.get('mqttPort'),
@@ -280,14 +323,20 @@
         config.dhcp = dhcpButton.getAttribute('data-value') === '1';
       }
 
+      // Get preferWifi state
+      const wifiButton = document.querySelector('.wifi-toggle .option-button.selected');
+      if (wifiButton) {
+        config.preferWifi = wifiButton.getAttribute('data-value') === '1';
+      }
+
       try {
         const response = await fetch('/config', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(config)
         });
-        if (!response.ok) throw new Error('Failed to save configuration');
-        alert('Configuration updated successfully!');
+        if (!response.ok) throw new Error('Failed to set configuration');
+        alert('Configuration updated successfully! \nRestarting Device!');
         window.location.href = "/";
       } catch (error) {
         alert(`Error: ${error.message}`);

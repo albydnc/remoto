@@ -48,7 +48,7 @@ const char rootHtml[] PROGMEM = R"rawliteral(
 
 
     /* Header styling */
-     h1 {
+    h1 {
       display: flex;
       justify-content: center;
       align-items: center;
@@ -168,7 +168,6 @@ const char rootHtml[] PROGMEM = R"rawliteral(
         const formattedDate = date.toLocaleDateString('en-GB');
         document.getElementById('dateTime').innerText = `${formattedTime} ${formattedDate}`;
     }
-        console.log(epochTime);
         document.getElementById('deviceId').innerText = data.deviceId;
         document.title = data.deviceId + " Device Status";
 
@@ -239,7 +238,7 @@ const char rootHtml[] PROGMEM = R"rawliteral(
 </head>
 
 <body>
-  <h1> <span id="title"><span id="deviceId">Opta</span> Device Status</span>
+  <h1> <span id="title"><span id="deviceId">Opta</span> Device Status </span>
     <span id="dateTime" class="datetime"></span>
   </h1>
 
@@ -426,6 +425,11 @@ const char configHtml[] PROGMEM = R"rawliteral(
     .dhcp-toggle {
       margin-bottom: 15px;
     }
+
+    /* New style for the DHCP toggle container */
+    .wifi-toggle {
+      margin-bottom: 15px;
+    }
   </style>
 </head>
 
@@ -447,6 +451,25 @@ const char configHtml[] PROGMEM = R"rawliteral(
           <button type="button" class="option-button selected" data-input="dhcp" data-value="0">Disable</button>
         </div>
       </div>
+
+      <!-- New connection type toggle -->
+      <div class="wifi-toggle input-item">
+        <label for="preferWifi">Prefer WiFi:</label>
+        <div class="option-buttons">
+          <button type="button" class="option-button" data-input="wifi" data-value="1">Enable</button>
+          <button type="button" class="option-button selected" data-input="wifi" data-value="0">Disable</button>
+        </div>
+      </div>
+
+      <!-- New wifi & NTP details -->
+      <label for="ssid">WiFi SSID:</label>
+      <input type="text" id="ssid" name="ssid" required>
+
+      <label for="wifipass">WiFi Password:</label>
+      <input type="text" id="wifiPass" name="wifiPass" required>
+
+      <label for="timeServer">Time Server:</label>
+      <input type="text" id="timeServer" name="timeServer" required>
 
       <label for="mqttServer">MQTT Server:</label>
       <input type="text" id="mqttServer" name="mqttServer" required>
@@ -498,6 +521,26 @@ const char configHtml[] PROGMEM = R"rawliteral(
             }
           });
         }
+
+        // Set WiFi toggle state
+        if (data.preferWifi !== undefined) {
+          const wifiButtons = document.querySelectorAll('.wifi-toggle .option-button');
+          wifiButtons.forEach(button => {
+            const value = button.getAttribute('data-value');
+            if ((value === '1' && data.preferWifi) || (value === '0' && !data.preferWifi)) {
+              button.classList.add('selected');
+            } else {
+              button.classList.remove('selected');
+            }
+          });
+        }
+
+        // Wifi details
+        document.getElementById('ssid').value = data.ssid;
+        document.getElementById('wifiPass').value = data.wifiPass;
+
+        // NTP details
+        document.getElementById('timeServer').value = data.timeServer;
 
         document.getElementById('mqttServer').value = data.mqtt.server;
         document.getElementById('mqttPort').value = data.mqtt.port;
@@ -552,6 +595,10 @@ const char configHtml[] PROGMEM = R"rawliteral(
         deviceId: formData.get('deviceId'),
         deviceIpAddress: formData.get('deviceIpAddress'),
         dhcp: false,
+        preferWifi: false,
+        ssid: formData.get('ssid'),
+        wifiPass: formData.get('wifiPass'),
+        timeServer: formData.get('timeServer'),
         mqtt: {
           server: formData.get('mqttServer'),
           port: formData.get('mqttPort'),
@@ -576,6 +623,12 @@ const char configHtml[] PROGMEM = R"rawliteral(
         config.dhcp = dhcpButton.getAttribute('data-value') === '1';
       }
 
+      // Get preferWifi state
+      const wifiButton = document.querySelector('.wifi-toggle .option-button.selected');
+      if (wifiButton) {
+        config.preferWifi = wifiButton.getAttribute('data-value') === '1';
+      }
+
       try {
         const response = await fetch('/config', {
           method: 'POST',
@@ -583,7 +636,7 @@ const char configHtml[] PROGMEM = R"rawliteral(
           body: JSON.stringify(config)
         });
         if (!response.ok) throw new Error('Failed to set configuration');
-        alert('Configuration updated successfully! \n Restarting Device!');
+        alert('Configuration updated successfully! \nRestarting Device!');
         window.location.href = "/";
       } catch (error) {
         alert(`Error: ${error.message}`);

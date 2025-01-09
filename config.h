@@ -35,11 +35,12 @@
 #define ADC_BITS 16
 
 //Wifi Secrets
-#define SECRET_SSID "WLNMUK_IOT_CAST"
-#define SECRET_PASS "WxfeQZM44!!"
+#define DEFAULT_SSID "SSID"
+#define DEFAULT_SSID_PASS "SSIDPASS"
+#define DEFAULT_PREFER_WIFI true
 
 //NTP
-#define TIME_SERVER "10.176.0.254"
+#define DEFAULT_TIME_SERVER "TIMESERVER"
 
 namespace remoto
 {
@@ -53,7 +54,11 @@ namespace remoto
     private:
         String _deviceId;
         bool _dhcp;
+        bool _preferWifi;
         String _ipaddr;
+        String _ssid;
+        String _wifiPass;
+        String _timeServer;
 
         struct MqttConfig
         {
@@ -105,6 +110,22 @@ namespace remoto
         // Getter and Setter for MQTT update interval
         int getMqttUpdateInterval() const;
         void setMqttUpdateInterval(int interval);
+        
+        // Getter and Setter for WiFi SSID
+        String getSSID() const;
+        void setSSID(const String &ssid);
+
+        // Getter and Setter for WiFi password
+        String getWiFiPassword() const;
+        void setWiFiPassword(const String &password);
+
+        // Getter and Setter for TimeServer Address
+        String getTimeServer() const;
+        void setTimeServer(const String &timeserver);
+
+        // Getter and Setter for WifiPref
+        bool getWiFiPref() const;
+        void setWiFiPref(const bool val);
 
         // Getter and setter for input type (DIGITAL or ANALOG)
         int getInputType(int index) const;
