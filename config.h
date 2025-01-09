@@ -35,11 +35,11 @@
 #define ADC_BITS 16
 
 //Wifi Secrets
-#define SECRET_SSID "SSID"
-#define SECRET_PASS "PASSWORD"
+#define SECRET_SSID "WLNMUK_IOT_CAST"
+#define SECRET_PASS "WxfeQZM44!!"
 
 //NTP
-#define TIME_SERVER "TIMESERVER"
+#define TIME_SERVER "10.176.0.254"
 
 namespace remoto
 {

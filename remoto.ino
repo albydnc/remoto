@@ -17,6 +17,7 @@
  * Date: 27-12-2024
  * License: CERN-OHL-P
  */
+ 
 #include <Scheduler.h>
 // Network
 #include <ArduinoJson.h>
@@ -116,6 +117,7 @@ void setup() {
   // Initialize Ethernet
   int ret = 0;
   // First we check for a present ethernet link, try WiFi if one isnt found
+  
   if (Ethernet.linkStatus() == LinkOFF) {
     Serial.println("No Ethernet plugged in...");
     Serial.println("Trying WiFi");
@@ -180,9 +182,7 @@ void setup() {
   } else {
     // Start web server on WiFi
     Serial.print("Start WebServer on Ethernet using ");
-    Serial.println(Ethernet.localIP());
-    server.begin();
-    delay(1000);
+    server.begin();    
   }
 
   // Start Scheduler Loops
