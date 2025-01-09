@@ -44,6 +44,10 @@ config = {
     "deviceId": "OPTA_WIFI",  # Device ID
     "deviceIpAddress": "192.168.1.231",  # IP Address
     "dhcp": True,  # Indicates if DHCP is enabled
+    "preferWifi": True, # Indicates if the WiFi connection is prefered
+    "ssid": "MYSSID", # Example SSID
+    "wifiPass": "SSID Password", # Example SSID Password
+    "timeServer": "TimeServer",
     "mqtt": {  # MQTT broker configuration
         "server": "public.cloud.shiftr.io",
         "port": 1883,
