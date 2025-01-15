@@ -40,7 +40,7 @@
 #define DEFAULT_PREFER_WIFI true
 
 //NTP
-#define DEFAULT_TIME_SERVER "TIMESERVER"
+#define DEFAULT_TIME_SERVER "pool.ntp.org"
 
 namespace remoto
 {
