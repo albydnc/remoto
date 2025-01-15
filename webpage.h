@@ -154,7 +154,19 @@ const char rootHtml[] PROGMEM = R"rawliteral(
       border-radius: 8px;
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
     }
+
+    .datetime {
+      position: absolute;
+      right: 20px;
+      font-size: 1rem;
+      color: #fff;
+    }
+
+    #title {
+      text-align: center;
+    }
   </style>
+  
   <script>
     async function updateStatus() {
       try {
