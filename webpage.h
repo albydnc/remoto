@@ -7,6 +7,7 @@
  * via a built-in web interface and supports telemetry data publishing to
  * an MQTT broker. It includes:
  * - Ethernet-based networking.
+ * - WiFi Networking.
  * - MQTT client for telemetry and control.
  * - JSON-based configuration stored in flash memory.
  * - Web server for monitoring and configuration.
@@ -22,10 +23,9 @@
 #include <Arduino.h>
 #include <Ethernet.h>
 
-namespace remoto
-{
+namespace remoto {
 
-    const char rootHtml[] PROGMEM = R"rawliteral(
+const char rootHtml[] PROGMEM = R"rawliteral(
    <!DOCTYPE html>
 <html>
 
@@ -49,11 +49,14 @@ namespace remoto
 
     /* Header styling */
     h1 {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      position: relative;
       background-color: #6200ea;
       color: #fff;
       margin: 0;
       padding: 20px;
-      text-align: center;
       font-size: 1.8rem;
     }
 
@@ -151,15 +154,35 @@ namespace remoto
       border-radius: 8px;
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
     }
+
+    .datetime {
+      position: absolute;
+      right: 20px;
+      font-size: 1rem;
+      color: #fff;
+    }
+
+    #title {
+      text-align: center;
+    }
   </style>
+  
   <script>
     async function updateStatus() {
       try {
         const response = await fetch('/data');
         const data = await response.json();
         console.log(data.deviceId);
+        const epochTime = data.NTP;
+        if (epochTime) {
+        const date = new Date(epochTime * 1000);
+        const formattedTime = date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        const formattedDate = date.toLocaleDateString('en-GB');
+        document.getElementById('dateTime').innerText = `${formattedTime} ${formattedDate}`;
+    }
         document.getElementById('deviceId').innerText = data.deviceId;
         document.title = data.deviceId + " Device Status";
+
         // Update MQTT connection status
         document.getElementById('mqttStatus').className = data.mqttConnected ? 'led high' : 'led low';
         document.getElementById('mqttText').innerText = data.mqttConnected ? 'Connected' : 'Disconnected';
@@ -191,6 +214,12 @@ namespace remoto
           }
         });
 
+        if (digitalList.childElementCount === 0) {
+        digitalList.parentElement.style.display = 'none';
+        } else {
+        digitalList.parentElement.style.display = 'block';
+        }
+
         const outputList = document.getElementById('outputs');
         outputList.innerHTML = '';
         Object.keys(data.outputs).forEach(pin => {
@@ -203,6 +232,12 @@ namespace remoto
             li.appendChild(document.createTextNode(`${val}`));
             outputList.appendChild(li);
         });
+        
+        if (analogList.childElementCount === 0) {
+        analogList.parentElement.style.display = 'none';
+        } else {
+        analogList.parentElement.style.display = 'block';
+        }
 
       } catch (error) {
         console.error('Error updating status:', error);
@@ -215,7 +250,10 @@ namespace remoto
 </head>
 
 <body>
-  <h1><span id="deviceId">Opta</span> Device Status</h1>
+  <h1> <span id="title"><span id="deviceId">Opta</span> Device Status </span>
+    <span id="dateTime" class="datetime"></span>
+  </h1>
+
   <div class="status">
     <h2>MQTT Connection:</h2>
     <p>
@@ -266,7 +304,7 @@ namespace remoto
 </html>
     )rawliteral";
 
-    const char configHtml[] PROGMEM = R"rawliteral(
+const char configHtml[] PROGMEM = R"rawliteral(
     <!DOCTYPE html>
 <html lang="en">
 
@@ -399,6 +437,11 @@ namespace remoto
     .dhcp-toggle {
       margin-bottom: 15px;
     }
+
+    /* New style for the DHCP toggle container */
+    .wifi-toggle {
+      margin-bottom: 15px;
+    }
   </style>
 </head>
 
@@ -420,6 +463,25 @@ namespace remoto
           <button type="button" class="option-button selected" data-input="dhcp" data-value="0">Disable</button>
         </div>
       </div>
+
+      <!-- New connection type toggle -->
+      <div class="wifi-toggle input-item">
+        <label for="preferWifi">Prefer WiFi:</label>
+        <div class="option-buttons">
+          <button type="button" class="option-button" data-input="wifi" data-value="1">Enable</button>
+          <button type="button" class="option-button selected" data-input="wifi" data-value="0">Disable</button>
+        </div>
+      </div>
+
+      <!-- New wifi & NTP details -->
+      <label for="ssid">WiFi SSID:</label>
+      <input type="text" id="ssid" name="ssid" required>
+
+      <label for="wifipass">WiFi Password:</label>
+      <input type="text" id="wifiPass" name="wifiPass" required>
+
+      <label for="timeServer">Time Server:</label>
+      <input type="text" id="timeServer" name="timeServer" required>
 
       <label for="mqttServer">MQTT Server:</label>
       <input type="text" id="mqttServer" name="mqttServer" required>
@@ -471,6 +533,26 @@ namespace remoto
             }
           });
         }
+
+        // Set WiFi toggle state
+        if (data.preferWifi !== undefined) {
+          const wifiButtons = document.querySelectorAll('.wifi-toggle .option-button');
+          wifiButtons.forEach(button => {
+            const value = button.getAttribute('data-value');
+            if ((value === '1' && data.preferWifi) || (value === '0' && !data.preferWifi)) {
+              button.classList.add('selected');
+            } else {
+              button.classList.remove('selected');
+            }
+          });
+        }
+
+        // Wifi details
+        document.getElementById('ssid').value = data.ssid;
+        document.getElementById('wifiPass').value = data.wifiPass;
+
+        // NTP details
+        document.getElementById('timeServer').value = data.timeServer;
 
         document.getElementById('mqttServer').value = data.mqtt.server;
         document.getElementById('mqttPort').value = data.mqtt.port;
@@ -525,6 +607,10 @@ namespace remoto
         deviceId: formData.get('deviceId'),
         deviceIpAddress: formData.get('deviceIpAddress'),
         dhcp: false,
+        preferWifi: false,
+        ssid: formData.get('ssid'),
+        wifiPass: formData.get('wifiPass'),
+        timeServer: formData.get('timeServer'),
         mqtt: {
           server: formData.get('mqttServer'),
           port: formData.get('mqttPort'),
@@ -549,6 +635,12 @@ namespace remoto
         config.dhcp = dhcpButton.getAttribute('data-value') === '1';
       }
 
+      // Get preferWifi state
+      const wifiButton = document.querySelector('.wifi-toggle .option-button.selected');
+      if (wifiButton) {
+        config.preferWifi = wifiButton.getAttribute('data-value') === '1';
+      }
+
       try {
         const response = await fetch('/config', {
           method: 'POST',
@@ -556,7 +648,7 @@ namespace remoto
           body: JSON.stringify(config)
         });
         if (!response.ok) throw new Error('Failed to set configuration');
-        alert('Configuration updated successfully!');
+        alert('Configuration updated successfully! \nRestarting Device!');
         window.location.href = "/";
       } catch (error) {
         alert(`Error: ${error.message}`);
@@ -571,4 +663,4 @@ namespace remoto
 </html>
 )rawliteral";
 }
-#endif // WEBPAGE_H
+#endif  // WEBPAGE_H

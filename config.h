@@ -7,6 +7,7 @@
  * via a built-in web interface and supports telemetry data publishing to
  * an MQTT broker. It includes:
  * - Ethernet-based networking.
+ * - WiFi Netowrking
  * - MQTT client for telemetry and control.
  * - JSON-based configuration stored in flash memory.
  * - Web server for monitoring and configuration.
@@ -33,6 +34,14 @@
 #define DEFAULT_IP_ADDR "192.168.1.231"
 #define ADC_BITS 16
 
+//Wifi Secrets
+#define DEFAULT_SSID "SSID"
+#define DEFAULT_SSID_PASS "SSIDPASS"
+#define DEFAULT_PREFER_WIFI true
+
+//NTP
+#define DEFAULT_TIME_SERVER "pool.ntp.org"
+
 namespace remoto
 {
 
@@ -45,7 +54,11 @@ namespace remoto
     private:
         String _deviceId;
         bool _dhcp;
+        bool _preferWifi;
         String _ipaddr;
+        String _ssid;
+        String _wifiPass;
+        String _timeServer;
 
         struct MqttConfig
         {
@@ -97,6 +110,22 @@ namespace remoto
         // Getter and Setter for MQTT update interval
         int getMqttUpdateInterval() const;
         void setMqttUpdateInterval(int interval);
+        
+        // Getter and Setter for WiFi SSID
+        String getSSID() const;
+        void setSSID(const String &ssid);
+
+        // Getter and Setter for WiFi password
+        String getWiFiPassword() const;
+        void setWiFiPassword(const String &password);
+
+        // Getter and Setter for TimeServer Address
+        String getTimeServer() const;
+        void setTimeServer(const String &timeserver);
+
+        // Getter and Setter for WifiPref
+        bool getWiFiPref() const;
+        void setWiFiPref(const bool val);
 
         // Getter and setter for input type (DIGITAL or ANALOG)
         int getInputType(int index) const;
