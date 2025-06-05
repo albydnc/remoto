@@ -58,7 +58,7 @@ bool forceMQTTSend = false;
 char ssid[] = DEFAULT_SSID;
 char pass[] = DEFAULT_SSID_PASS;
 
-void connectMQTT();
+bool connectMQTT();
 void loopHeartbeat();
 void loopTele();
 void getStringFromPOST();
@@ -125,7 +125,7 @@ void setup()
     if (wstatus != WL_CONNECTED)
     {
       Serial.println("WiFi Failed. Trying Ethernet");
-      connectEthernet(); //will get stuck if does not connect
+      connectEthernet(); // will get stuck if does not connect
     }
   }
   else
@@ -135,9 +135,11 @@ void setup()
     {
       Serial.println("Ethernet Failed. Trying WiFi");
       wstatus = connectWiFi();
-      if(wstatus != WL_CONNECTED){
+      if (wstatus != WL_CONNECTED)
+      {
         Serial.println("ERROR: Cannot connect to WiFi. Halting.");
-        while(true);
+        while (true)
+          ;
       }
     }
   }
@@ -200,7 +202,8 @@ void loop()
   }
   // reconnect to WiFi if connection is lost
   // and it is the preferred network
-  if(WiFi.status() != WL_CONNECTED && conf.getWiFiPref()){
+  if (WiFi.status() != WL_CONNECTED && conf.getWiFiPref())
+  {
     Serial.println("Trying to reconnect to WiFi");
     connectWiFi();
   }
@@ -248,33 +251,35 @@ void loopTele()
 
   if (!client.connected())
   {
-    digitalWrite(LEDR, HIGH);
-    mqttConnected = false;
-    connectMQTT();
+    mqttConnected = connectMQTT();
   }
-  else
-  {
-    digitalWrite(LEDR, LOW);
-    mqttConnected = true;
-  }
+  digitalWrite(LEDR, !mqttConnected);
 }
 
 // MQTT Connection Handler
-void connectMQTT()
+bool connectMQTT()
 {
   Serial.print("Connecting to MQTT broker...");
-  while (!client.connect(conf.getDeviceId().c_str(), conf.getMqttUser().c_str(), conf.getMqttPassword().c_str()))
+  bool ret = false;
+  for (int i = 0; i < 10; i++)
   {
-    Serial.print(".");
+    ret = client.connect(conf.getDeviceId().c_str(), conf.getMqttUser().c_str(), conf.getMqttPassword().c_str());
   }
-  Serial.println("\nConnected to MQTT broker!");
-  mqttConnected = true;
-  for (size_t i = 0; i < NUM_OUTPUTS; i++)
+  if (ret)
   {
-    String topic = conf.getDeviceId() + "/O" + String(i + 1);
-    client.subscribe(topic);
-    Serial.println("Subcribed to " + topic);
+    Serial.println("\nConnected to MQTT broker!");
+    for (size_t i = 0; i < NUM_OUTPUTS; i++)
+    {
+      String topic = conf.getDeviceId() + "/O" + String(i + 1);
+      client.subscribe(topic);
+      Serial.println("Subcribed to " + topic);
+    }
   }
+  else
+  {
+    Serial.println("ERR: can't connect to MQTT broker");
+  }
+  return ret;
 }
 
 // mqtt subscribe callback
