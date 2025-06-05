@@ -280,8 +280,8 @@ namespace remoto
         _dhcp = doc["dhcp"].as<bool>();
         _preferWifi = doc["preferWifi"].as<bool>();
         _ssid = doc["ssid"].as<String>();
-        _ssid = doc["wifiPass"].as<String>();
-        _ssid = doc["timeServer"].as<String>();
+        _wifiPass = doc["wifiPass"].as<String>();
+        _timeServer = doc["timeServer"].as<String>();
         _mqtt.server = doc["mqtt"]["server"].as<String>();
         _mqtt.port = doc["mqtt"]["port"].as<int>();
         _mqtt.user = doc["mqtt"]["user"].as<String>();
