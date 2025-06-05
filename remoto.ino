@@ -277,7 +277,7 @@ void loopTele()
 
       for (int k = 0; k < OPTA_DIGITAL_IN_NUM; k++)
       {
-        String inTopic = "E" + String(i + 1) + "I/" + String(k + 1) + "/";
+        String inTopic = "E" + String(i + 1) + "/I" + String(k + 1) + "/";
         client.publish(String(rootTopic + inTopic + "val").c_str(), String(exps.at(i).in[k]).c_str());
         char buffer[10];
         int ret = snprintf(buffer, sizeof(buffer), "%0.2f", exps.at(i).volt[k]);
