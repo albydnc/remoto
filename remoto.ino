@@ -719,7 +719,7 @@ int connectWiFi()
   int ret = WL_IDLE_STATUS;
   if (conf.getDHCP())
   {
-    WiFi.begin(conf.getSSID(), conf.getWiFiPassword());
+    WiFi.begin(conf.getSSID().c_str(), conf.getWiFiPassword().c_str());
   }
   else
   {
@@ -731,7 +731,7 @@ int connectWiFi()
     Serial.print("Attempting to connect to SSID: ");
     Serial.println(conf.getSSID());
     // Connect to WPA/WPA2 network. Change this line if using open or WEP network:
-    ret = WiFi.begin(conf.getSSID(), conf.getWiFiPassword());
+    ret = WiFi.begin(conf.getSSID().c_str(), conf.getWiFiPassword().c_str());
     // wait 3 seconds for connection:
     delay(3000);
     if (ret == WL_CONNECTED)
