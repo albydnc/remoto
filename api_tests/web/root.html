@@ -138,7 +138,7 @@
       text-align: center;
     }
   </style>
-  
+
   <script>
     async function updateStatus() {
       try {
@@ -147,11 +147,11 @@
         console.log(data.deviceId);
         const epochTime = data.NTP;
         if (epochTime) {
-        const date = new Date(epochTime * 1000);
-        const formattedTime = date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-        const formattedDate = date.toLocaleDateString('en-GB');
-        document.getElementById('dateTime').innerText = `${formattedTime} ${formattedDate}`;
-    }
+          const date = new Date(epochTime * 1000);
+          const formattedTime = date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+          const formattedDate = date.toLocaleDateString('en-GB');
+          document.getElementById('dateTime').innerText = `${formattedTime} ${formattedDate}`;
+        }
         document.getElementById('deviceId').innerText = data.deviceId;
         document.title = data.deviceId + " Device Status";
 
@@ -187,29 +187,102 @@
         });
 
         if (digitalList.childElementCount === 0) {
-        digitalList.parentElement.style.display = 'none';
+          digitalList.parentElement.style.display = 'none';
         } else {
-        digitalList.parentElement.style.display = 'block';
+          digitalList.parentElement.style.display = 'block';
         }
 
         const outputList = document.getElementById('outputs');
         outputList.innerHTML = '';
         Object.keys(data.outputs).forEach(pin => {
+          const li = document.createElement('li');
+          const led = document.createElement('span');
+          led.className = data.outputs[pin] ? 'led high' : 'led low';
+          li.appendChild(document.createTextNode(`${pin}`));
+          li.appendChild(led);
+          const val = data.outputs[pin] ? "ON" : "OFF";
+          li.appendChild(document.createTextNode(`${val}`));
+          outputList.appendChild(li);
+        });
+
+        if (analogList.childElementCount === 0) {
+          analogList.parentElement.style.display = 'none';
+        } else {
+          analogList.parentElement.style.display = 'block';
+        }
+
+        // Expansions
+        // Update inputs
+        const expList = document.getElementById('expansions');
+        expList.innerHTML = '';
+        Object.keys(data.expansions).forEach(exp => {
+          const expTitle = document.createElement('h2');
+          expTitle.textContent = "Expansion " + exp;
+          expList.appendChild(expTitle);
+
+          const expDiv = document.createElement('div');
+          expDiv.className = "status";
+          //input list
+          const typeLi = document.createElement('h3');
+          typeLi.textContent = "Expansion Type: " + data.expansions[exp].type;
+          expDiv.appendChild(typeLi);
+          //input list
+          const inTitle = document.createElement('h2');
+          inTitle.textContent = "Inputs:";
+          expDiv.appendChild(inTitle);
+          const expInList = document.createElement('ul');
+          expInList.innerHTML = '';
+          Object.keys(data.expansions[exp].inputs).sort((a, b) => {
+            const numA = parseInt(a.slice(1), 10);
+            const numB = parseInt(b.slice(1), 10);
+            return numA - numB;
+          }).forEach(pin => {
             const li = document.createElement('li');
             const led = document.createElement('span');
-            led.className = data.outputs[pin] ? 'led high' : 'led low';
-            li.appendChild(document.createTextNode(`${pin}`));
+            // Use the value for the specific pin
+            const pinValue = data.expansions[exp].inputs[pin].value;
+            led.className = pinValue ? 'led high' : 'led low';
+            li.appendChild(document.createTextNode(`${pin} `));
             li.appendChild(led);
-            const val = data.outputs[pin] ? "ON" : "OFF";
-            li.appendChild(document.createTextNode(`${val}`));
-            outputList.appendChild(li);
+            const val = pinValue ? "ON" : "OFF";
+            li.appendChild(document.createTextNode(` ${val}  /  ${data.expansions[exp].inputs[pin].volt.toFixed(2)} V`));
+            expInList.appendChild(li);
+          });
+          // Only append if there are children
+          if (expInList.childElementCount > 0) {
+            expDiv.appendChild(expInList);
+          }
+          //output list
+          const outTitle = document.createElement('h2');
+          outTitle.textContent = "Outputs:";
+          expDiv.appendChild(outTitle);
+          const expOutList = document.createElement('ul');
+          expOutList.innerHTML = '';
+          Object.keys(data.expansions[exp].outputs).sort((a, b) => {
+            const numA = parseInt(a.slice(1), 10);
+            const numB = parseInt(b.slice(1), 10);
+            return numA - numB;
+          }).forEach(pin => {
+            const li = document.createElement('li');
+            const led = document.createElement('span');
+            // Use the value for the specific pin
+            const pinValue = data.expansions[exp].outputs[pin].value;
+            led.className = pinValue ? 'led high' : 'led low';
+            li.appendChild(document.createTextNode(`${pin} `));
+            li.appendChild(led);
+            const val = pinValue ? "ON" : "OFF";
+            li.appendChild(document.createTextNode(` ${val}`));
+            expOutList.appendChild(li);
+          });
+          // Only append if there are children
+          if (expOutList.childElementCount > 0) {
+            expDiv.appendChild(expOutList);
+          }
+
+          expList.appendChild(expDiv);
+
         });
-        
-        if (analogList.childElementCount === 0) {
-        analogList.parentElement.style.display = 'none';
-        } else {
-        analogList.parentElement.style.display = 'block';
-        }
+
 
       } catch (error) {
         console.error('Error updating status:', error);
@@ -248,6 +321,7 @@
     <h2>Outputs:</h2>
     <ul id="outputs"></ul>
   </div>
+  <ul id="expansions" class="status"></ul>
   <div class="config">
     <p>
       <a href="device" class="button"> Configure Device</a>
