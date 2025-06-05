@@ -19,6 +19,8 @@
  */
 
 #include <Scheduler.h>
+#include <OptaBlue.h>
+#include <array>
 // Network
 #include <ArduinoJson.h>
 #include <PortentaEthernet.h>
@@ -54,13 +56,11 @@ config conf;
 bool mqttConnected = false;
 long lastPublish = -1;
 bool forceMQTTSend = false;
-// Wifi +  NTP Stuff
-char ssid[] = DEFAULT_SSID;
-char pass[] = DEFAULT_SSID_PASS;
 
 bool connectMQTT();
 void loopHeartbeat();
 void loopTele();
+void loopExp();
 void getStringFromPOST();
 void mqttReceived(String &topic, String &payload);
 IPAddress parseIP(const String &ipaddr);
@@ -68,7 +68,18 @@ IPAddress parseIP(const String &ipaddr);
 int connectWiFi();
 int connectEthernet();
 void setupNTP();
+//
 REDIRECT_STDOUT_TO(Serial);
+// Expansions
+typedef struct
+{
+  ExpansionType_t type = EXPANSION_DIGITAL_INVALID;
+  float volt[16];
+  bool in[16];
+  bool out[8];
+} exp_t;
+// expansion array
+std::array<exp_t, OPTA_CONTROLLER_MAX_EXPANSION_NUM> exps;
 
 void setup()
 {
@@ -173,8 +184,9 @@ void setup()
     Serial.print("Start WebServer on Ethernet using ");
     server.begin();
   }
-
+  OptaController.begin();
   // Start Scheduler Loops
+  Scheduler.startLoop(loopExp);
   Scheduler.startLoop(loopTele);
   Scheduler.startLoop(loopHeartbeat);
   Serial.println("Startup Completed.");
@@ -244,6 +256,34 @@ void loopTele()
         client.publish(String(rootTopic + inTopic + "type").c_str(), "1");
       }
     }
+    // Expansions
+    for (size_t i = 0; i < OptaController.getExpansionNum(); i++)
+    {
+      String expTopic = "E" + String(i + 1) + "/type";
+      String type = "";
+      switch (exps.at(i).type)
+      {
+      case EXPANSION_OPTA_DIGITAL_MEC:
+        type = "D1608E";
+        break;
+      case EXPANSION_OPTA_DIGITAL_STS:
+        type = "D1608S";
+        break;
+      default:
+        type = "UNSUPPORTED";
+        break;
+      }
+      client.publish(String(rootTopic + expTopic).c_str(), type.c_str());
+
+      for (int k = 0; k < OPTA_DIGITAL_IN_NUM; k++)
+      {
+        String inTopic = "E" + String(i + 1) + "/I" + String(k + 1) + "/";
+        client.publish(String(rootTopic + inTopic + "val").c_str(), String(exps.at(i).in[k]).c_str());
+        char buffer[10];
+        int ret = snprintf(buffer, sizeof(buffer), "%0.2f", exps.at(i).volt[k]);
+        client.publish(String(rootTopic + inTopic + "volt").c_str(), buffer);
+      }
+    }
     Serial.println("MQTT published successfully. " + String(lastPublish));
   }
 
@@ -256,6 +296,60 @@ void loopTele()
   digitalWrite(LEDR, !mqttConnected);
 }
 
+// loop expansions
+void loopExp()
+{
+  OptaController.update();
+  // read expansions status
+  for (int i = 0; i < OPTA_CONTROLLER_MAX_EXPANSION_NUM; i++)
+  {
+    DigitalMechExpansion mechExp = OptaController.getExpansion(i);
+    DigitalStSolidExpansion stsolidExp = OptaController.getExpansion(i);
+    if (mechExp)
+    {
+      // read input data
+      mechExp.updateDigitalInputs();
+      mechExp.updateAnalogInputs();
+      exps.at(i).type = mechExp.getType();
+      for (int k = 0; k < OPTA_DIGITAL_IN_NUM; k++)
+      {
+        exps.at(i).in[k] = mechExp.digitalRead(k, false);
+        exps.at(i).volt[k] = mechExp.pinVoltage(k, false);
+      }
+      // write outputs
+      for (int k = 0; k < OPTA_DIGITAL_OUT_NUM; k++)
+      {
+        PinStatus st = exps.at(i).out[k] ? HIGH : LOW;
+        mechExp.digitalWrite(k,st, false);
+      }
+      mechExp.updateDigitalOutputs();
+    }
+    else if (stsolidExp)
+    {
+      // read input data
+      stsolidExp.updateDigitalInputs();
+      stsolidExp.updateAnalogInputs();
+      exps.at(i).type = stsolidExp.getType();
+      for (int k = 0; k < OPTA_DIGITAL_IN_NUM; k++)
+      {
+        exps.at(i).in[k] = stsolidExp.digitalRead(k, false);
+        exps.at(i).volt[k] = stsolidExp.pinVoltage(k, false);
+      }
+      // write outputs
+      for (int k = 0; k < OPTA_DIGITAL_OUT_NUM; k++)
+      {
+        PinStatus st = exps.at(i).out[k] ? HIGH : LOW;
+        stsolidExp.digitalWrite(k,st, false);
+      }
+      stsolidExp.updateDigitalOutputs();
+    }
+    else
+    {
+      exps.at(i).type = EXPANSION_NOT_VALID;
+    }
+  }
+  yield();
+}
 // MQTT Connection Handler
 bool connectMQTT()
 {
@@ -522,6 +616,45 @@ String getData()
     String name = "O" + String(i + 1);
     outputsObj[name] = digitalRead(conf.getOutputPin(i));
   }
+
+  JsonObject expsObj = doc.createNestedObject("expansions");
+      // Expansions
+    for (size_t i = 0; i < OptaController.getExpansionNum(); i++)
+    {
+      String name = "E"+ String(i+1);
+      JsonObject expObj = expsObj.createNestedObject(name);
+      String type = "";
+      switch (exps.at(i).type)
+      {
+      case EXPANSION_OPTA_DIGITAL_MEC:
+        type = "D1608E";
+        break;
+      case EXPANSION_OPTA_DIGITAL_STS:
+        type = "D1608S";
+        break;
+      default:
+        type = "UNSUPPORTED";
+        break;
+      }
+      expObj["type"] = type;
+      JsonObject einObject = expObj.createNestedObject("inputs");
+      //expansions inputs
+      for (int k = 0; k < OPTA_DIGITAL_IN_NUM; k++)
+      {
+        String iname = "I" + String(k + 1);
+        JsonObject obj = einObject.createNestedObject(iname);
+        obj["value"] = exps.at(i).in[k];
+        obj["volt"] = exps.at(i).volt[k];
+      }
+      JsonObject eoutObject = expObj.createNestedObject("outputs");
+      //expansions outputs
+      for (int k = 0; k < OPTA_DIGITAL_OUT_NUM; k++)
+      {
+        String iname = "O" + String(k + 1);
+        JsonObject obj = eoutObject.createNestedObject(iname);
+        obj["value"] = exps.at(i).out[k];
+      }
+    }
   String jsonString;
   serializeJson(doc, jsonString);
   return jsonString;
@@ -586,7 +719,7 @@ int connectWiFi()
   int ret = WL_IDLE_STATUS;
   if (conf.getDHCP())
   {
-    WiFi.begin(ssid, pass);
+    WiFi.begin(conf.getSSID().c_str(), conf.getWiFiPassword().c_str());
   }
   else
   {
@@ -596,9 +729,9 @@ int connectWiFi()
   for (int i = 0; i < 10; i++)
   {
     Serial.print("Attempting to connect to SSID: ");
-    Serial.println(ssid);
+    Serial.println(conf.getSSID());
     // Connect to WPA/WPA2 network. Change this line if using open or WEP network:
-    ret = WiFi.begin(ssid, pass);
+    ret = WiFi.begin(conf.getSSID().c_str(), conf.getWiFiPassword().c_str());
     // wait 3 seconds for connection:
     delay(3000);
     if (ret == WL_CONNECTED)
