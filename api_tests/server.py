@@ -160,6 +160,13 @@ def config_endpoint():
         return jsonify({"message": "Configuration updated successfully!"})
 
 
+# Endpoint for retrieving or updating device configuration
+@api.route("/output", methods=["POST"])
+def out_endpoint():
+    if request.method == "POST":  #
+        print(request.json)  # 
+        return jsonify({"status": "success"})
+
 # Simulated endpoint for MQTT publishing
 @api.route("/send", methods=["GET"])
 def get_send():

@@ -35,8 +35,8 @@
 #define ADC_BITS 16
 
 //Wifi Secrets
-#define DEFAULT_SSID "SSID"
-#define DEFAULT_SSID_PASS "SSIDPASS"
+#define DEFAULT_SSID "HelloIoT"
+#define DEFAULT_SSID_PASS "AlbertoPerroIoT1997"
 #define DEFAULT_PREFER_WIFI true
 
 //NTP

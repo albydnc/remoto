@@ -51,7 +51,7 @@ WiFiServer wserver(80);
 // NTP
 NTPClient timeClient(ntpUDP, DEFAULT_TIME_SERVER);
 unsigned long timeString = 0;
-
+unsigned long lastBeat = 0;
 config conf;
 bool mqttConnected = false;
 long lastPublish = -1;
@@ -61,7 +61,8 @@ bool connectMQTT();
 void loopHeartbeat();
 void loopTele();
 void loopExp();
-void getStringFromPOST();
+String getStringFromPOST(Client &client);
+void handleClient(Client &client);
 void mqttReceived(String &topic, String &payload);
 IPAddress parseIP(const String &ipaddr);
 // Network
@@ -200,7 +201,7 @@ void loop()
     WiFiClient client = wserver.available();
     if (client)
     {
-      handleWiFiClient(client); // Handle the client
+      handleClient(client); // Handle the client
     }
   }
   else if (Ethernet.linkStatus() == LinkON)
@@ -209,7 +210,7 @@ void loop()
     EthernetClient client = server.available();
     if (client)
     {
-      handleEthClient(client); // Handle the client
+      handleClient(client); // Handle the client
     }
   }
   // reconnect to WiFi if connection is lost
@@ -288,7 +289,6 @@ void loopTele()
   }
 
   client.loop();
-
   if (!client.connected())
   {
     mqttConnected = connectMQTT();
@@ -320,7 +320,7 @@ void loopExp()
       for (int k = 0; k < OPTA_DIGITAL_OUT_NUM; k++)
       {
         PinStatus st = exps.at(i).out[k] ? HIGH : LOW;
-        mechExp.digitalWrite(k,st, false);
+        mechExp.digitalWrite(k, st, false);
       }
       mechExp.updateDigitalOutputs();
     }
@@ -339,7 +339,7 @@ void loopExp()
       for (int k = 0; k < OPTA_DIGITAL_OUT_NUM; k++)
       {
         PinStatus st = exps.at(i).out[k] ? HIGH : LOW;
-        stsolidExp.digitalWrite(k,st, false);
+        stsolidExp.digitalWrite(k, st, false);
       }
       stsolidExp.updateDigitalOutputs();
     }
@@ -358,6 +358,8 @@ bool connectMQTT()
   for (int i = 0; i < 10; i++)
   {
     ret = client.connect(conf.getDeviceId().c_str(), conf.getMqttUser().c_str(), conf.getMqttPassword().c_str());
+    if (ret)
+      break;
   }
   if (ret)
   {
@@ -367,6 +369,16 @@ bool connectMQTT()
       String topic = conf.getDeviceId() + "/O" + String(i + 1);
       client.subscribe(topic);
       Serial.println("Subcribed to " + topic);
+    }
+    // Expansions
+    for (size_t i = 0; i < OptaController.getExpansionNum(); i++)
+    {
+      for (size_t k = 0; k < OPTA_DIGITAL_OUT_NUM; k++)
+      {
+        String topic = conf.getDeviceId() + "/E" + String(i + 1) + "/O" + String(k + 1);
+        client.subscribe(topic);
+        Serial.println("Subcribed to " + topic);
+      }
     }
   }
   else
@@ -390,23 +402,37 @@ void mqttReceived(String &topic, String &payload)
       Serial.println("Setting output " + String(i + 1));
     }
   }
+  // Expansions
+  for (size_t i = 0; i < OptaController.getExpansionNum(); i++)
+  {
+    for (size_t k = 0; k < OPTA_DIGITAL_OUT_NUM; k++)
+    {
+      String match = conf.getDeviceId() + "/E" + String(i + 1) + "/O" + String(k + 1);
+      if (topic == match)
+      {
+        exps.at(i).out[k] = payload.toInt();
+        Serial.println("Setting output E" + String(i + 1) + " O" + String(k + 1));
+      }
+    }
+  }
 }
 // blink to show it is alive
 void loopHeartbeat()
 {
-  digitalWrite(LED_USER, HIGH);
-  delay(100);
-  digitalWrite(LED_USER, LOW);
-  // Break up the long delay to yield control  ##Fix for watchdog crash.
-  for (int i = 0; i < 49; i++)
+  // Non blocking delay
+  if (millis() - lastBeat > 4900)
   {
+    digitalWrite(LED_USER, HIGH);
     delay(100);
-    yield();
+    digitalWrite(LED_USER, LOW);
+    lastBeat = millis();
   }
+  yield();
 }
 
-// Handle webserver calls on WiFi
-void handleWiFiClient(WiFiClient client)
+
+// handle webserver call
+void handleClient(Client &client)
 {
   // Read client request
   String request = client.readStringUntil('\r');
@@ -422,6 +448,7 @@ void handleWiFiClient(WiFiClient client)
     client.println();
     client.println(json);
     client.stop();
+    Serial.println("HTTP request GET data");
     return;
   }
   else if (request.startsWith("GET /config"))
@@ -433,6 +460,8 @@ void handleWiFiClient(WiFiClient client)
     client.println();
     client.println(json);
     client.stop();
+    Serial.println("HTTP request GET config");
+
     return;
   }
   else if (request.startsWith("GET /device"))
@@ -443,8 +472,10 @@ void handleWiFiClient(WiFiClient client)
     client.println();
 
     // Read the HTML from program memory
-    client.write(configHtml, strlen_P(configHtml));
+    client.write(configHtml, strlen_P((const char*)configHtml));
     client.stop();
+    Serial.println("HTTP request GET device");
+
     return;
   }
   else if (request.startsWith("GET /send"))
@@ -456,90 +487,7 @@ void handleWiFiClient(WiFiClient client)
     client.println("{\"status\":\"success\",\"message\":\"MQTT forced send received.\"}");
     forceMQTTSend = true;
     client.stop();
-    return;
-  }
-  else if (request.startsWith("POST /config"))
-  {
-    // Retrieve JSON data from the POST request
-    String json = getStringFromWiFiPOST(client);
-    // Respond to the client
-    client.println("HTTP/1.1 200 OK");
-    client.println("Content-Type: application/json");
-    client.println("Connection: close");
-    client.println();
-    client.println("{\"status\":\"success\",\"message\":\"Configuration updated\"}");
-    client.stop();
-    Serial.println("New Config Received: " + json);
-    if (conf.loadFromJson(json.c_str(), json.length()) == 0)
-    {
-      kv_set("config", json.c_str(), json.length(), 0);
-      Serial.println("Valid Configuration, rebooting.");
-      NVIC_SystemReset();
-    }
-    return;
-  }
-
-  client.println("HTTP/1.1 200 OK");
-  client.println("Content-Type: text/html");
-  client.println("Connection: close");
-  client.println();
-
-  // Read the HTML from program memory
-  client.write(rootHtml, strlen_P(rootHtml));
-  client.stop();
-}
-
-// handle webserver calls on Ethernet
-void handleEthClient(EthernetClient client)
-{
-  // Read client request
-  String request = client.readStringUntil('\r');
-  client.flush();
-
-  // Serve JSON data for dynamic updates
-  if (request.startsWith("GET /data"))
-  {
-    String json = getData();
-    client.println("HTTP/1.1 200 OK");
-    client.println("Content-Type: application/json");
-    client.println("Connection: close");
-    client.println();
-    client.println(json);
-    client.stop();
-    return;
-  }
-  else if (request.startsWith("GET /config"))
-  {
-    String json = conf.toJson();
-    client.println("HTTP/1.1 200 OK");
-    client.println("Content-Type: application/json");
-    client.println("Connection: close");
-    client.println();
-    client.println(json);
-    client.stop();
-    return;
-  }
-  else if (request.startsWith("GET /device"))
-  {
-    client.println("HTTP/1.1 200 OK");
-    client.println("Content-Type: text/html");
-    client.println("Connection: close");
-    client.println();
-
-    // Read the HTML from program memory
-    client.write(configHtml, strlen_P(configHtml));
-    client.stop();
-    return;
-  }
-  else if (request.startsWith("GET /send"))
-  {
-    client.println("HTTP/1.1 200 OK");
-    client.println("Content-Type: application/json");
-    client.println("Connection: close");
-    client.println();
-    client.println("{\"status\":\"success\",\"message\":\"MQTT forced send received.\"}");
-    forceMQTTSend = true;
-    client.stop();
+    Serial.println("HTTP request GET send");
     return;
   }
   else if (request.startsWith("POST /config"))
@@ -553,6 +501,7 @@ void handleEthClient(EthernetClient client)
     client.println();
     client.println("{\"status\":\"success\",\"message\":\"Configuration updated\"}");
     client.stop();
+    Serial.println("HTTP request POST config");
     Serial.println("New Config Received: " + json);
     if (conf.loadFromJson(json.c_str(), json.length()) == 0)
     {
@@ -562,6 +511,51 @@ void handleEthClient(EthernetClient client)
     }
     return;
   }
+  else if (request.startsWith("POST /output"))
+  {
+    // Retrieve JSON data from the POST request
+    String json = getStringFromPOST(client);
+    // Respond to the client
+    // Parse JSON
+    StaticJsonDocument<200> doc;
+    DeserializationError error = deserializeJson(doc, json);
+    int pin = doc["pin"].as<int>();
+    int exp = doc["exp"].as<int>();
+    int state = doc["state"].as<int>();
+    Serial.println("HTTP request POST output");
+    if (error ||
+        !doc.containsKey("state") ||
+        !doc.containsKey("pin") ||
+        !doc.containsKey("exp"))
+    {
+      client.println("HTTP/1.1 400 Bad Request");
+      client.println("Content-Type: application/json");
+      client.println("Connection: close");
+      client.println();
+      client.println("{\"status\":\"error\",\"message\":\"Invalid JSON\"}");
+      client.stop();
+      return;
+    }
+
+    if (exp == 0)
+    {
+      digitalWrite(conf.getOutputPin(pin - 1), state);
+      digitalWrite(conf.getOutputLed(pin - 1), state);
+    }
+    else
+    {
+      exps.at(exp - 1).out[pin - 1] = state;
+    }
+
+    client.println("HTTP/1.1 200 OK");
+    client.println("Content-Type: application/json");
+    client.println("Connection: close");
+    client.println();
+    client.println("{\"status\":\"success\"}");
+    client.stop();
+
+    return;
+  }
 
   client.println("HTTP/1.1 200 OK");
   client.println("Content-Type: text/html");
@@ -569,7 +563,7 @@ void handleEthClient(EthernetClient client)
   client.println();
 
   // Read the HTML from program memory
-  client.write(rootHtml, strlen_P(rootHtml));
+  client.write(rootHtml, strlen_P((const char*)rootHtml));
   client.stop();
 }
 
@@ -618,72 +612,49 @@ String getData()
   }
 
   JsonObject expsObj = doc.createNestedObject("expansions");
-      // Expansions
-    for (size_t i = 0; i < OptaController.getExpansionNum(); i++)
+  // Expansions
+  for (size_t i = 0; i < OptaController.getExpansionNum(); i++)
+  {
+    String name = "E" + String(i + 1);
+    JsonObject expObj = expsObj.createNestedObject(name);
+    String type = "";
+    switch (exps.at(i).type)
     {
-      String name = "E"+ String(i+1);
-      JsonObject expObj = expsObj.createNestedObject(name);
-      String type = "";
-      switch (exps.at(i).type)
-      {
-      case EXPANSION_OPTA_DIGITAL_MEC:
-        type = "D1608E";
-        break;
-      case EXPANSION_OPTA_DIGITAL_STS:
-        type = "D1608S";
-        break;
-      default:
-        type = "UNSUPPORTED";
-        break;
-      }
-      expObj["type"] = type;
-      JsonObject einObject = expObj.createNestedObject("inputs");
-      //expansions inputs
-      for (int k = 0; k < OPTA_DIGITAL_IN_NUM; k++)
-      {
-        String iname = "I" + String(k + 1);
-        JsonObject obj = einObject.createNestedObject(iname);
-        obj["value"] = exps.at(i).in[k];
-        obj["volt"] = exps.at(i).volt[k];
-      }
-      JsonObject eoutObject = expObj.createNestedObject("outputs");
-      //expansions outputs
-      for (int k = 0; k < OPTA_DIGITAL_OUT_NUM; k++)
-      {
-        String iname = "O" + String(k + 1);
-        JsonObject obj = eoutObject.createNestedObject(iname);
-        obj["value"] = exps.at(i).out[k];
-      }
+    case EXPANSION_OPTA_DIGITAL_MEC:
+      type = "D1608E";
+      break;
+    case EXPANSION_OPTA_DIGITAL_STS:
+      type = "D1608S";
+      break;
+    default:
+      type = "UNSUPPORTED";
+      break;
     }
+    expObj["type"] = type;
+    JsonObject einObject = expObj.createNestedObject("inputs");
+    // expansions inputs
+    for (int k = 0; k < OPTA_DIGITAL_IN_NUM; k++)
+    {
+      String iname = "I" + String(k + 1);
+      JsonObject obj = einObject.createNestedObject(iname);
+      obj["value"] = exps.at(i).in[k];
+      obj["volt"] = exps.at(i).volt[k];
+    }
+    JsonObject eoutObject = expObj.createNestedObject("outputs");
+    // expansions outputs
+    for (int k = 0; k < OPTA_DIGITAL_OUT_NUM; k++)
+    {
+      String iname = "O" + String(k + 1);
+      JsonObject obj = eoutObject.createNestedObject(iname);
+      obj["value"] = exps.at(i).out[k];
+    }
+  }
   String jsonString;
   serializeJson(doc, jsonString);
   return jsonString;
 }
 
-String getStringFromPOST(EthernetClient client)
-{
-  String json = "";
-  bool headersEnded = false;
-
-  while (client.available())
-  {
-    String line = client.readStringUntil('\n'); // Read line-by-line
-    // Detect the end of headers (an empty line)
-    if (line == "\r")
-    {
-      headersEnded = true; // Headers end here
-      continue;
-    }
-    // If headers have ended, start collecting the body (JSON)
-    if (headersEnded)
-    {
-      json += line; // Append body content to the json string
-    }
-  }
-  return json; // Return trimmed JSON string
-}
-
-String getStringFromWiFiPOST(WiFiClient client)
+String getStringFromPOST(Client &client)
 {
   String json = "";
   bool headersEnded = false;

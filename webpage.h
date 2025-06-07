@@ -25,8 +25,8 @@
 
 namespace remoto {
 
-const char rootHtml[] PROGMEM = R"rawliteral(
-   <!DOCTYPE html>
+const uint8_t rootHtml[] PROGMEM = R"rawliteral(
+<!DOCTYPE html>
 <html>
 
 <head>
@@ -142,6 +142,10 @@ const char rootHtml[] PROGMEM = R"rawliteral(
       text-decoration: none;
     }
 
+    .toggle-btn {
+      margin-left: 10px;
+    }
+
     .button:hover {
       background-color: #0056b3;
     }
@@ -168,6 +172,24 @@ const char rootHtml[] PROGMEM = R"rawliteral(
   </style>
 
   <script>
+    // Function to make a POST request to toggle the pin
+    function togglePin(pin, exp, state) {
+      fetch('/output', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ pin: parseInt(pin), exp: parseInt(exp), state: state })
+      })
+        .then(response => response.json())
+        .then(data => {
+          console.log('Pin toggled:', data);
+          updateStatus();
+        })
+        .catch(error => {
+          console.error('Error toggling pin:', error);
+        });
+    }
     async function updateStatus() {
       try {
         const response = await fetch('/data');
@@ -206,7 +228,6 @@ const char rootHtml[] PROGMEM = R"rawliteral(
             li.appendChild(led);
             const val = data.inputs[pin].value ? "ON" : "OFF";
             li.appendChild(document.createTextNode(`${val}`));
-            digitalList.appendChild(li);
           } else {
             const li = document.createElement('li');
             li.innerText = `${pin}: ${data.inputs[pin].value.toFixed(2)} V`;
@@ -230,6 +251,15 @@ const char rootHtml[] PROGMEM = R"rawliteral(
           li.appendChild(led);
           const val = data.outputs[pin] ? "ON" : "OFF";
           li.appendChild(document.createTextNode(`${val}`));
+          const btn = document.createElement('button');
+          btn.className = 'toggle-btn';
+          btn.textContent = data.outputs[pin].value ? "Turn OFF" : "Turn ON";
+          btn.onclick = () => {
+            const newState = data.outputs[pin].value ? 0 : 1;
+            togglePin(parseInt(pin.slice(1), 10), 0, newState);
+          };
+          li.appendChild(btn);
+          digitalList.appendChild(li);
           outputList.appendChild(li);
         });
 
@@ -300,6 +330,14 @@ const char rootHtml[] PROGMEM = R"rawliteral(
             li.appendChild(led);
             const val = pinValue ? "ON" : "OFF";
             li.appendChild(document.createTextNode(` ${val}`));
+            const btn = document.createElement('button');
+            btn.className = 'toggle-btn';
+            btn.textContent = data.expansions[exp].outputs[pin].value ? "Turn OFF" : "Turn ON";
+            btn.onclick = () => {
+              const newState = data.expansions[exp].outputs[pin].value ? 0 : 1;
+              togglePin(parseInt(pin.slice(1), 10), parseInt(exp.slice(1), 10), newState);
+            };
+            li.appendChild(btn);
             expOutList.appendChild(li);
           });
           // Only append if there are children
@@ -378,7 +416,7 @@ const char rootHtml[] PROGMEM = R"rawliteral(
 </html>
     )rawliteral";
 
-const char configHtml[] PROGMEM = R"rawliteral(
+const uint8_t configHtml[] PROGMEM = R"rawliteral(
     <!DOCTYPE html>
 <html lang="en">
 
