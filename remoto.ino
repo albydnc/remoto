@@ -168,7 +168,7 @@ void setup()
     Serial.println("Using Ethernet");
     client.begin(conf.getMqttServer().c_str(), conf.getMqttPort(), net);
   }
-  connectMQTT();
+  mqttConnected = connectMQTT();
   client.onMessage(mqttReceived);
 
   if (wstatus == WL_CONNECTED)
@@ -350,6 +350,7 @@ void loopExp()
   }
   yield();
 }
+
 // MQTT Connection Handler
 bool connectMQTT()
 {
@@ -385,6 +386,7 @@ bool connectMQTT()
   {
     Serial.println("ERR: can't connect to MQTT broker");
   }
+
   return ret;
 }
 
@@ -430,7 +432,6 @@ void loopHeartbeat()
   yield();
 }
 
-
 // handle webserver call
 void handleClient(Client &client)
 {
@@ -462,53 +463,6 @@ void handleClient(Client &client)
     client.stop();
     Serial.println("HTTP request GET config");
 
-    return;
-  }
-  else if (request.startsWith("GET /device"))
-  {
-    client.println("HTTP/1.1 200 OK");
-    client.println("Content-Type: text/html");
-    client.println("Connection: close");
-    client.println();
-
-    // Read the HTML from program memory
-    client.write(configHtml, strlen_P((const char*)configHtml));
-    client.stop();
-    Serial.println("HTTP request GET device");
-
-    return;
-  }
-  else if (request.startsWith("GET /send"))
-  {
-    client.println("HTTP/1.1 200 OK");
-    client.println("Content-Type: application/json");
-    client.println("Connection: close");
-    client.println();
-    client.println("{\"status\":\"success\",\"message\":\"MQTT forced send received.\"}");
-    forceMQTTSend = true;
-    client.stop();
-    Serial.println("HTTP request GET send");
-    return;
-  }
-  else if (request.startsWith("POST /config"))
-  {
-    // Retrieve JSON data from the POST request
-    String json = getStringFromPOST(client);
-    // Respond to the client
-    client.println("HTTP/1.1 200 OK");
-    client.println("Content-Type: application/json");
-    client.println("Connection: close");
-    client.println();
-    client.println("{\"status\":\"success\",\"message\":\"Configuration updated\"}");
-    client.stop();
-    Serial.println("HTTP request POST config");
-    Serial.println("New Config Received: " + json);
-    if (conf.loadFromJson(json.c_str(), json.length()) == 0)
-    {
-      kv_set("config", json.c_str(), json.length(), 0);
-      Serial.println("Valid Configuration, rebooting.");
-      NVIC_SystemReset();
-    }
     return;
   }
   else if (request.startsWith("POST /output"))
@@ -556,6 +510,54 @@ void handleClient(Client &client)
 
     return;
   }
+  else if (request.startsWith("GET /device"))
+  {
+    client.println("HTTP/1.1 200 OK");
+    client.println("Content-Type: text/html");
+    client.println("Connection: close");
+    client.println();
+
+    // Read the HTML from program memory
+    client.write(configHtml, strlen_P((const char *)configHtml));
+    client.stop();
+    Serial.println("HTTP request GET device");
+
+    return;
+  }
+  else if (request.startsWith("GET /send"))
+  {
+    client.println("HTTP/1.1 200 OK");
+    client.println("Content-Type: application/json");
+    client.println("Connection: close");
+    client.println();
+    client.println("{\"status\":\"success\",\"message\":\"MQTT forced send received.\"}");
+    forceMQTTSend = true;
+    client.stop();
+    Serial.println("HTTP request GET send");
+    return;
+  }
+  else if (request.startsWith("POST /config"))
+  {
+    // Retrieve JSON data from the POST request
+    String json = getStringFromPOST(client);
+    // Respond to the client
+    client.println("HTTP/1.1 200 OK");
+    client.println("Content-Type: application/json");
+    client.println("Connection: close");
+    client.println();
+    client.println("{\"status\":\"success\",\"message\":\"Configuration updated\"}");
+    client.stop();
+    Serial.println("HTTP request POST config");
+    Serial.println("New Config Received: " + json);
+    if (conf.loadFromJson(json.c_str(), json.length()) == 0)
+    {
+      kv_set("config", json.c_str(), json.length(), 0);
+      Serial.println("Valid Configuration, rebooting.");
+      NVIC_SystemReset();
+    }
+    return;
+  }
+
 
   client.println("HTTP/1.1 200 OK");
   client.println("Content-Type: text/html");
@@ -563,7 +565,7 @@ void handleClient(Client &client)
   client.println();
 
   // Read the HTML from program memory
-  client.write(rootHtml, strlen_P((const char*)rootHtml));
+  client.write(rootHtml, strlen_P((const char *)rootHtml));
   client.stop();
 }
 
@@ -644,9 +646,8 @@ String getData()
     // expansions outputs
     for (int k = 0; k < OPTA_DIGITAL_OUT_NUM; k++)
     {
-      String iname = "O" + String(k + 1);
-      JsonObject obj = eoutObject.createNestedObject(iname);
-      obj["value"] = exps.at(i).out[k];
+      String oname = "O" + String(k + 1);
+      eoutObject[oname] = exps.at(i).out[k];
     }
   }
   String jsonString;

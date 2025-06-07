@@ -53,14 +53,14 @@ data = {
                 "I16": {"value": False, "volt": 0},
             },
             "outputs": {
-                "O1": {"value": False},
-                "O2": {"value": False},
-                "O3": {"value": False},
-                "O4": {"value": False},
-                "O5": {"value": False},
-                "O6": {"value": False},
-                "O7": {"value": False},
-                "O8": {"value": False},
+                "O1": 0,
+                "O2": 0,
+                "O3": 0,
+                "O4": 0,
+                "O5": 0,
+                "O6": 0,
+                "O7": 0,
+                "O8": 0,
             },
         },
         "E2": {
@@ -84,16 +84,16 @@ data = {
                 "I16": {"value": False, "volt": 0},
             },
             "outputs": {
-                "O1": {"value": False},
-                "O2": {"value": False},
-                "O3": {"value": False},
-                "O4": {"value": False},
-                "O5": {"value": False},
-                "O6": {"value": False},
-                "O7": {"value": False},
-                "O8": {"value": False},
+                "O1": 0,
+                "O2": 0,
+                "O3": 0,
+                "O4": 0,
+                "O5": 0,
+                "O6": 0,
+                "O7": 0,
+                "O8": 0,
             },
-        }
+        },
     },
 }
 
@@ -164,8 +164,9 @@ def config_endpoint():
 @api.route("/output", methods=["POST"])
 def out_endpoint():
     if request.method == "POST":  #
-        print(request.json)  # 
+        print(request.json)  #
         return jsonify({"status": "success"})
+
 
 # Simulated endpoint for MQTT publishing
 @api.route("/send", methods=["GET"])

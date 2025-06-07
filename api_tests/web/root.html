@@ -145,23 +145,37 @@
 
   <script>
     // Function to make a POST request to toggle the pin
-    function togglePin(pin, exp, state) {
-      fetch('/output', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ pin: parseInt(pin), exp: parseInt(exp), state: state })
-      })
-        .then(response => response.json())
-        .then(data => {
-          console.log('Pin toggled:', data);
-          updateStatus();
-        })
-        .catch(error => {
-          console.error('Error toggling pin:', error);
-        });
+// Function to make a POST request to toggle the pin with timeout
+async function togglePin(pin, exp, state) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10000); // 10 seconds
+
+  try {
+    const response = await fetch('/output', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ pin: parseInt(pin), exp: parseInt(exp), state: state }),
+      signal: controller.signal
+    });
+    clearTimeout(timeout);
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
+
+    const data = await response.json();
+    console.log('Pin toggled:', data);
+    updateStatus();
+  } catch (error) {
+    if (error.name === 'AbortError') {
+      console.error('Request timed out');
+    } else {
+      console.error('Error toggling pin:', error);
+    }
+  }
+}
     async function updateStatus() {
       try {
         const response = await fetch('/data');
@@ -225,9 +239,9 @@
           li.appendChild(document.createTextNode(`${val}`));
           const btn = document.createElement('button');
           btn.className = 'toggle-btn';
-          btn.textContent = data.outputs[pin].value ? "Turn OFF" : "Turn ON";
+          btn.textContent = data.outputs[pin] ? "Turn OFF" : "Turn ON";
           btn.onclick = () => {
-            const newState = data.outputs[pin].value ? 0 : 1;
+            const newState = data.outputs[pin] ? 0 : 1;
             togglePin(parseInt(pin.slice(1), 10), 0, newState);
           };
           li.appendChild(btn);
@@ -296,7 +310,7 @@
             const li = document.createElement('li');
             const led = document.createElement('span');
             // Use the value for the specific pin
-            const pinValue = data.expansions[exp].outputs[pin].value;
+            const pinValue = data.expansions[exp].outputs[pin];
             led.className = pinValue ? 'led high' : 'led low';
             li.appendChild(document.createTextNode(`${pin} `));
             li.appendChild(led);
@@ -304,9 +318,9 @@
             li.appendChild(document.createTextNode(` ${val}`));
             const btn = document.createElement('button');
             btn.className = 'toggle-btn';
-            btn.textContent = data.expansions[exp].outputs[pin].value ? "Turn OFF" : "Turn ON";
+            btn.textContent = data.expansions[exp].outputs[pin] ? "Turn OFF" : "Turn ON";
             btn.onclick = () => {
-              const newState = data.expansions[exp].outputs[pin].value ? 0 : 1;
+              const newState = data.expansions[exp].outputs[pin] ? 0 : 1;
               togglePin(parseInt(pin.slice(1), 10), parseInt(exp.slice(1), 10), newState);
             };
             li.appendChild(btn);
